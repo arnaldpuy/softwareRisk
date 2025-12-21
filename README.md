@@ -33,12 +33,12 @@ package version 0.1.0, <https://github.com/arnaldpuy/softwareRisk>.
 
 A BibTeX entry for LaTeX users is
 
-@Manual{,
+@Manual{puy2025_softwareRisk,
   title = {softwareRisk: Computation of node and path-level risk scores in scientific models},
   author = {Arnald Puy},
   year = {2025},
   note = {R package version 0.1.0},
-  url = {https://github.com/arnaldpuy/softwareRisk},
+  url = {https://github.com/arnaldpuy/softwareRisk}
 }
 
 

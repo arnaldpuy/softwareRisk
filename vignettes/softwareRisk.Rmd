@@ -1,8 +1,9 @@
 ---
 title: "softwareRisk: Computation of node and path-level risk scores in scientific models"
 output: rmarkdown::html_vignette
+bibliography: references.bib
 vignette: >
-  %\VignetteIndexEntry{softwareRisk}
+  %\VignetteIndexEntry{softwareRisk: Computation of node and path-level risk scores in scientific models}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -10,13 +11,65 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  dpi = 200,
+  fig.retina = 2
 )
 ```
 
-`softwareRisk` computes risk metrics for sequences of function calls represented as a directed call graph. The main workflow is:
+The `R` package `softwareRisk` leverages the network-like architecture of scientific models 
+together with software quality metrics to identify chains of function calls that are more 
+prone to generating and propagating errors. It operates on `tbl_graph` objects representing 
+call dependencies between functions (callers and callees) and computes risk scores for individual 
+functions and for paths (sequences of function calls) based on cyclomatic complexity, in-degree 
+and betweenness centrality. By leveraging the `sensobol` package [@puy2022a], `sofwareRisk` supports variance-based uncertainty and sensitivity analyses to assess how risk scores change under alternative risk definitions .
+
+## Workflow
 
 ```{r setup}
 library(softwareRisk)
+library(tidygraph)
+library(ggraph)
 
 ```
+
+```{r data_loading}
+
+data("synthetic_graph")
+synthetic_graph
+```
+
+```{r all_paths}
+
+output <- all_paths_fun(graph = synthetic_graph,
+                        alpha = 0.6,
+                        beta  = 0.3,
+                        gamma = 0.1,
+                        complexity_col = "cyclo",
+                        weight_tol = 1e-8)
+
+output
+```
+
+```{r plot_paths, fig.height=2, fig.width=3.5}
+
+plot_output <- plot_top_paths_fun(graph = synthetic_graph,
+                                  all_paths_out = output,
+                                  model.name = "ToyModel",
+                                  language = "Fortran",
+                                  top_n = 10,
+                                  alpha_non_top = 0.05)
+```
+
+```{r plot_paths2, fig.height=2, fig.width=3.5}
+
+plot_output <- plot_top_paths_fun(graph = synthetic_graph,
+                                  all_paths_out = output,
+                                  model.name = "ToyModel",
+                                  language = "Fortran",
+                                  top_n = 10,
+                                  alpha_non_top = 1)
+```
+
+
+## References
