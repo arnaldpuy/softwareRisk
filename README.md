@@ -9,3 +9,36 @@ call dependencies between functions (callers and callees) and computes risk scor
 functions and for paths (sequences of function calls) based on cyclomatic complexity, in-degree 
 and betweenness centrality. The package supports variance-based uncertainty and sensitivity analyses 
 to assess how risk scores change under alternative risk definitions.
+
+## Installation
+
+To install the stable version on [CRAN](https://CRAN.R-project.org/package=softwareRisk), use
+
+```r
+install.packages("softwareRisk")
+```
+To install the development version, use devtools:
+
+``` r
+install.packages("devtools") # if you have not installed devtools package already
+devtools::install_github("arnaldpuy/softwareRisk", build_vignettes = TRUE)
+```
+
+## Citation 
+
+To cite softwareRisk in publications:
+
+Puy A (2025). _softwareRisk: Computation of node and path-level risk scores in scientific models_. R
+package version 0.1.0, <https://github.com/arnaldpuy/softwareRisk>.
+
+A BibTeX entry for LaTeX users is
+
+@Manual{,
+  title = {softwareRisk: Computation of node and path-level risk scores in scientific models},
+  author = {Arnald Puy},
+  year = {2025},
+  note = {R package version 0.1.0},
+  url = {https://github.com/arnaldpuy/softwareRisk},
+}
+
+
