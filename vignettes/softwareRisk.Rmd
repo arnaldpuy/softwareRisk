@@ -1,0 +1,22 @@
+---
+title: "softwareRisk: Computation of node and path-level risk scores in scientific models"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{softwareRisk}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+`softwareRisk` computes risk metrics for sequences of function calls represented as a directed call graph. The main workflow is:
+
+```{r setup}
+library(softwareRisk)
+
+```
