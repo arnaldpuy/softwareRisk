@@ -1,10 +1,9 @@
 citHeader("To cite softwareRisk in publications:")
 
-citEntry(
-  entry    = "Manual",
-  title    = "softwareRisk: Computation of node and path-level risk scores in scientific models",
-  author   = person("Arnald", "Puy"),
-  year     = "2025",
-  note     = "R package version 0.1.0",
-  url      = "https://github.com/arnaldpuy/softwareRisk"
+bibentry(
+  bibtype = "Manual",
+  title = "softwareRisk: Computation of Node and Path-Level Risk Scores in Scientific Models",
+  author = person("Arnald", "Puy"),
+  year = "2025",
+  note = "R package version 0.1.0"
 )

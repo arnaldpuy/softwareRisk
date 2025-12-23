@@ -27,6 +27,7 @@
 #' The path-level risk score is calculated as
 #'
 #' \deqn{P_k = 1 - \prod_{i=1}^{n_k} (1 - r_{k(v_i)})\,,}
+#'
 #' where \eqn{r_{k(v_i)}} is the risk of the \eqn{i}-th function in path \eqn{k} and
 #' \eqn{n_k} is the number of functions in that path. The equation behaves like a
 #' saturating OR-operator: \eqn{P_k} is at least as large as the maximum individual

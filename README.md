@@ -24,6 +24,10 @@ install.packages("devtools") # if you have not installed devtools package alread
 devtools::install_github("arnaldpuy/softwareRisk", build_vignettes = TRUE)
 ```
 
+## Usage
+
+Please see the vignette for a walkthrough of the package utilities.
+
 ## Citation 
 
 To cite softwareRisk in publications:

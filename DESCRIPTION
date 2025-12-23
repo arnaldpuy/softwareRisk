@@ -1,6 +1,6 @@
 Package: softwareRisk
 Type: Package
-Title: Computation of node and path-level risk scores in scientific models
+Title: Computation of Node and Path-Level Risk Scores in Scientific Models
 Version: 0.1.0
 Date: 2025-12-21
 Authors@R: c(
@@ -36,7 +36,9 @@ Imports:
     sensobol
 Suggests: 
     knitr,
-    rmarkdown
+    rmarkdown,
+    spelling
 VignetteBuilder: knitr
 Depends: 
     R (>= 3.5)
+Language: en-US

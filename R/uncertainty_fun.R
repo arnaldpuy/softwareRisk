@@ -141,7 +141,7 @@ uncertainty_fun <- function(all_paths_out, N, order) {
 
   # ---- Sobol sampling for alpha/beta/gamma ----------------------------------
   params <- c("a_raw", "b_raw", "c_raw")
-  mat <- sobol_matrices(N = N, params = params, order = order)
+  mat <- sensobol::sobol_matrices(N = N, params = params, order = order)
   s <- rowSums(mat)
 
   alpha <- mat[, "a_raw"] / s
@@ -195,15 +195,12 @@ uncertainty_fun <- function(all_paths_out, N, order) {
     P_k[[i]] <- apply(ua_mat, 2, path_prob_from_nodes)
   }
 
-  # store path UA as list-column P_k_vec (requested)
+  # store path UA as list-column------------------------------------------------
   data.table::set(paths_dt, j = "uncertainty_analysis", value = P_k)
 
-  pk_mean <- vapply(P_k, mean, numeric(1), na.rm = TRUE)
-  paths_dt <- paths_dt[order(-pk_mean)]
-
-  # ---- final outputs (NO .() ) ----------------------------------------------
+  # ---- final outputs ---------------------------------------------------------
   node_dt_out <- node_dt[, c("name", "uncertainty_analysis", "sensitivity_analysis"), with = FALSE]
-  paths_out   <- paths_dt[, c("path_str", "hops", "uncertainty_analysis"), with = FALSE]
+  paths_out   <- paths_dt[, c("path_id", "path_str", "hops", "uncertainty_analysis"), with = FALSE]
 
   list(nodes = node_dt_out, paths = paths_out)
 }
