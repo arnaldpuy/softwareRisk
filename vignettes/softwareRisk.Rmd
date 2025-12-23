@@ -3,7 +3,7 @@ title: "softwareRisk: Computation of Node and Path-Level Risk Scores in Scientif
 output: rmarkdown::html_vignette
 bibliography: references.bib
 vignette: >
-  %\VignetteIndexEntry{softwareRisk: Computation of node and path-level risk scores in scientific models}
+  %\VignetteIndexEntry{softwareRisk: Computation of Node and Path-Level Risk Scores in Scientific Models}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
