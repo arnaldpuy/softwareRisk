@@ -217,15 +217,7 @@ The output is a list with two slots:
 
 * `$paths`: a `path_id` column with the ID number of the path, a `path_str` column informing on the sequence of functions calls for that path, a `hops` column informing on the number of edges traversed along the path, and an `uncertainty_analysis` with a vector of path-level risk scores after the uncertainty analysis. 
 
-The `sensitivity_analysis` column can be unlisted and inspected as follows:
-
-```{r unlist}
-
-uncertainty_analysis$nodes |>
-  tidyr::unnest(sensitivity_analysis)
-```
-
-See the `sensobol` package for information on first-order ($S_i$) and total-order ($T_i$) indices [@puy2022a}].
+The `sensitivity_analysis` column can be unlisted and inspected as any other `data.table`. See the `sensobol` package for information on first-order ($S_i$) and total-order ($T_i$) indices [@puy2022a}].
 
 The analyst can also plot the top $n$ risky paths and their uncertainty with the function `path_uncertainty_plot`. The error bars encompass the minimum, mean and maximum $P_k$ value for that path.
 

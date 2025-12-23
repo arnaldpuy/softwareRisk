@@ -97,11 +97,6 @@ uncertainty_analysis <- uncertainty_fun(all_paths_out = output,
 
 lapply(uncertainty_analysis, function(x) head(x, 5))
 
-## ----unlist-------------------------------------------------------------------
-
-uncertainty_analysis$nodes |>
-  tidyr::unnest(sensitivity_analysis)
-
 ## ----plot_uncert--------------------------------------------------------------
 
 path_uncertainty_plot(ua_sa_out = uncertainty_analysis, n_paths = 20)
