@@ -30,7 +30,7 @@ Please see the vignette for a walkthrough of the package utilities.
 
 ## Citation 
 
-To cite softwareRisk in publications:
+To cite `softwareRisk` in publications:
 
 Puy A (2025). _softwareRisk: Computation of node and path-level risk scores in scientific models_. R
 package version 0.1.0, <https://github.com/arnaldpuy/softwareRisk>.
