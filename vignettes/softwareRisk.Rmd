@@ -27,6 +27,9 @@ to evaluate how the identification of risky function-call paths varies under alt
 about the relative importance of function complexity, coupling and structural position within 
 the software.
 
+A printable PDF version of this 
+vignette is also available [here](https://github.com/arnaldpuy/softwareRisk/blob/main/inst/extdata/vignette-pdf/softwareRisk.pdf).
+
 ## Workflow
 
 We first load the packages needed for the analysis.
