@@ -1,0 +1,229 @@
+---
+title: "softwareRisk: Computation of Node and Path-Level Risk Scores in Scientific Models"
+output: rmarkdown::pdf_document
+bibliography: references_pdf.bib
+vignette: >
+  %\VignetteIndexEntry{softwareRisk: Computation of Node and Path-Level Risk Scores in Scientific Models}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.retina = 2
+)
+```
+
+The `R` package `softwareRisk` leverages the network-like architecture of scientific models 
+together with software quality metrics to identify risky paths, which are defined by the complexity
+of its functions and the extent to which errors can cascade along and beyond their 
+execution order. It operates on `tbl_graph` objects representing 
+call dependencies between functions (callers and callees). By leveraging the `sensobol` 
+package [@puy2022a], `sofwareRisk` also supports variance-based uncertainty and sensitivity analyses
+to evaluate how the identification of risky function-call paths varies under alternative assumptions 
+about the relative importance of function complexity, coupling and structural position within 
+the software.
+
+## Workflow
+
+We first load the packages needed for the analysis.
+
+```{r setup, message=FALSE}
+library(softwareRisk)
+library(tidygraph)
+```
+
+### Prepare the required datasets
+
+`softwareRisk` draws on the representation of the model's source code as a directed call 
+graph $G = (V,E)$ in which each node $v_i \in V$ is a function or subroutine and each 
+directed edge $e_{ij} = (v_i, v_j) \in E$ is a function call. It also assumes that 
+each function will have a cyclomatic complexity value. Therefore the analyst should have two 
+different datasets before starting the analysis:
+
+1. A spreadsheet listing the set set of directed edges as an edge list, with one row per
+function call. The first column may contian the caller function (source node, $v_i$, "from") and the
+second column the calle function (target node, $v_j$, "to"): 
+
+2. A spreadsheet listing the cyclomatic_complexity values for each function in the model.
+
+Let us create these datasets to illustrate their format:
+
+```{r}
+
+# Dataset 1: calls (edge list) -------------------------------------------------
+
+calls_df <- data.frame(
+  from = c("clean_data", "compute_risk", "compute_risk", "calc_scores", "plot_results"),
+  to = c("load_data", "clean_data", "calc_scores", "mean", "compute_risk")
+)
+
+calls_df
+
+# Dataset 2: cyclomatic complexity (node attributes) ---------------------------
+
+cyclo_df <- data.frame(
+  name  = c("clean_data", "load_data", "compute_risk", "calc_scores", "mean", "plot_results"),
+  cyclo = c(6, 3, 12, 5, 2, 4)
+)
+
+cyclo_df
+```
+
+The analyst can then merge them into a `tbl_graph`:
+
+```{r merge}
+
+# Merge into a tbl_graph -------------------------------------------------------
+
+graph <- tbl_graph(nodes = cyclo_df, edges = calls_df, directed = TRUE)
+
+graph
+```
+
+Once this is done, the data is prepared for `softwareRisk`.
+
+### Analysis
+
+Here we illustrate the functions of `softwareRisk` by using the build-in data
+`synthetic_graph`. It consists of five entry nodes, 35 middle nodes and
+15 sink nodes. Each entry node calls between two and five middle nodes and each
+middle node calls one to three sink nodes, thus simulating realistic code architecture. 
+The synthetic example reproduces the characteristic right-tailed distribution of cyclomatic complexity 
+found in real software systems, with many low-complexity functions and few highly complex ones [@landman2016].
+
+```{r data_loading}
+
+# Load the data ----------------------------------------------------------------
+
+data("synthetic_graph")
+
+# Print it ---------------------------------------------------------------------
+
+synthetic_graph
+```
+
+The next step is to compute the in-degree and betweenness centrality of each node, calculate its 
+risk score and identify all simple paths through the directed function-call graph. All this
+is done with the ``all_paths_fun`` function. The in-degree and betweenness of the nodes
+are calculated internally by functions in the `igraph` package. The risk score for node $v_i$ is
+computed as
+
+\begin{equation}
+r_{(v_i)} = \alpha\,\tilde{C}_{(v_i)} + \beta\, \tilde{d}_{(v_i)}^{\text{in}} + \gamma\,\tilde{b}_{(v_i)}\,,
+\end{equation}
+
+where the tilde $\tilde{}$ refers to normalization, $C$ denotes cyclomatic complexity, $d^{\text{in}}$ refers
+to in-degree and $b$ denotes betweenness. The weights $\alpha$, $\beta$ and $\gamma$ reflect the relative importance of complexity, coupling and network position. High $r$ values indicate functions that are complex and/or highly interconnected and hence potential points of structural vulnerability.
+
+Path-level risk scores are defined as
+
+\begin{equation}
+P_k = 1 - \prod_{i=1}^{n_k} (1 - r_{k(v_i)})\,,
+\label{eq:independent_events}
+\end{equation}
+
+where $r_{k(v_i)}$ is the risk of the $i$-th function in path $k$ and $n_k$ is the number of functions in that path. The equation above behaves like a saturating OR-operator: $P_k$ is at least as large as the maximum individual function risk and monotonically increases as more functions on the path become risky, approaching 1 when several functions have high risk scores. High $P_k$ scores thus identify not only vulnerable paths, but also paths whose potential failure can have a larger cascading effect into other parts of the system through their shared high-centrality functions.
+
+In this example, we set $\alpha=0.6$, $\beta=0.3$ and $\gamma = 0.1$ to adopt a definition of risk
+that prioritizes defect-proneness and the likelihood of unexpected behaviours, thus relegating propagation
+potential as secondary. Other weights are possible, with the only constrain that $\alpha + \beta + \gamma = 1$.
+
+```{r all_paths}
+
+# Run the function -------------------------------------------------------------
+
+output <- all_paths_fun(graph = synthetic_graph,
+                        alpha = 0.6,
+                        beta  = 0.3,
+                        gamma = 0.1,
+                        complexity_col = "cyclo",
+                        weight_tol = 1e-8)
+
+# Print the output -------------------------------------------------------------
+
+output
+```
+
+The output of `all_paths_fun` is a list with two slots, `nodes` and `paths`. 
+
+* `$nodes`: it contains the name of the nodes and their relevant metrics (cyclomatic complexity, in-degree, out-degree, betweenness and risk score).
+
+* `$paths`: it describes each simple path in the call graph and includes the ordered sequence of nodes forming the path, the number of hops (i.e., the number of edges traversed along the path), the path-level risk score and the vector of cyclomatic complexity values for the nodes along the path (`path_cc` column). In addition, two distributional metrics are reported: the Gini coefficient of node-level risk along the path (`gini_node_risk` column), which quantifies the inequality of risk contributions across nodes within a path, and the risk_slope, which captures the direction and magnitude of change in node-level risk from the beginning to the end of the path.
+
+### Plotting
+
+`softwareRisk` provides functions to inspect the results of the analysis. The function `path_fix_heatmap` allows the analyst to chose the top $n$ nodes and $n$ paths in terms of their risk score and 
+observe how much the risk score of the riskiest paths would decrease if the selected high-risk nodes were made perfectly reliable. This analysis identifies nodes that act as chokepoints for risk propagation, highlights paths dominated by single high-risk functions and reveals which refactoring actions would yield the greatest reductions in path-level risk.
+
+```{r plot_heatmap, fig.height=2.5, fig.width=3.5}
+
+path_fix_heatmap(all_paths_out = output, n_nodes = 20, k_paths = 20)
+```
+
+`softwareRisk` also allows to plot the call graph with the top risky paths highlighted. This is done with the function `plot_top_paths_fun`. The top ten most risky paths are highlighted in colour. The thickness of the edge shows how frequently an edge participates in the top 10 most risky paths. The color of the edge (from orange to red) indicates the mean risk of paths including that edge.
+
+```{r plot_paths, fig.height=2.5, fig.width=3.5}
+
+plot_output <- plot_top_paths_fun(graph = synthetic_graph,
+                                  all_paths_out = output,
+                                  model.name = "ToyModel",
+                                  language = "Fortran",
+                                  top_n = 10,
+                                  alpha_non_top = 0.05)
+```
+
+The color of the nodes maps onto the cyclomatic complexity categories defined by @watson1996 (0-10 low risk; 10-20 moderate complexity, 20-50 complex, high risk; $>50$ very complex, untestable).
+
+The `alpha_non_top` argument controls the transparency of the paths that are not identified as top. For small or sparse models, it can be set to `alpha_non_top = 1` to better visualize the full call graph:
+
+```{r plot_paths2, fig.height=2.5, fig.width=3.5}
+
+plot_output <- plot_top_paths_fun(graph = synthetic_graph,
+                                  all_paths_out = output,
+                                  model.name = "ToyModel",
+                                  language = "Fortran",
+                                  top_n = 10,
+                                  alpha_non_top = 1)
+```
+
+### Uncertainty and sensitivity analysis
+
+`softwareRisk` also enables the analyst to perform uncertainty and sensitivity analyses of risk score calculations by leveraging the sensobol package [@puy2022a]. By systematically varying the relative contribution of cyclomatic complexity and structural metrics such as in-degree and betweenness, the package allows users to evaluate how sensitive node- and path-level risk scores are to modelling assumptions. This approach makes it possible to assess the robustness of the identification of high-risk paths under alternative definitions of risk. 
+
+The relative weights assigned to cyclomatic complexity and structural metrics (in-degree and betweenness) are parameterized by the coefficients $\alpha$, $\beta$, and $\gamma$, which are randomly sampled and internally transformed into normalized weights ($\alpha_{\mathrm{raw}}$, $\beta_{\mathrm{raw}}$, and $\gamma_{\mathrm{raw}}$) that sum to one.
+
+Uncertainty and sensitivity analyses are implemented through the function `uncertainty_fun`:
+
+```{r uncertainty}
+
+# Run uncertainty analysis -----------------------------------------------------
+
+uncertainty_analysis <- uncertainty_fun(all_paths_out = output, 
+                                        N = 2^10, 
+                                        order = "first")
+
+# Print the top five rows ------------------------------------------------------
+
+lapply(uncertainty_analysis, function(x) head(x, 5))
+```
+
+The output is a list with two slots:
+
+* `$nodes`: a `name` column with the name of the node, an `uncertainty_analysis` column with a list of all the node-level risk scores after randomizing $\alpha$, $\beta$ and $\gamma$, and a `sensitivity_analysis` column with a data.table informing of the results of the sensitivity analysis.
+
+* `$paths`: a `path_id` column with the ID number of the path, a `path_str` column informing on the sequence of functions calls for that path, a `hops` column informing on the number of edges traversed along the path, and an `uncertainty_analysis` with a vector of path-level risk scores after the uncertainty analysis. 
+
+The `sensitivity_analysis` column can be unlisted and inspected as any other `data.table`. See the `sensobol` package for information on first-order ($S_i$) and total-order ($T_i$) indices [@puy2022a].
+
+The analyst can also plot the top $n$ risky paths and their uncertainty with the function `path_uncertainty_plot`. The error bars encompass the minimum, mean and maximum $P_k$ value for that path after the uncertainty analysis.
+
+```{r plot_uncert, fig.height=2.5, fig.width=3.5}
+
+path_uncertainty_plot(ua_sa_out = uncertainty_analysis, n_paths = 20)
+```
+
+## References
+

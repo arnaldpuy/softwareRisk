@@ -4,3 +4,5 @@
 ^doc$
 ^Meta$
 ^CRAN-SUBMISSION$
+^docs/.*\.pdf$
+^inst/extdata/vignette-pdf/.*\.Rmd$
