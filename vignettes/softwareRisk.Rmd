@@ -28,7 +28,7 @@ about the relative importance of function complexity, coupling and structural po
 the software.
 
 A printable PDF version of this 
-vignette is also available [here](https://github.com/arnaldpuy/softwareRisk/blob/main/inst/extdata/vignette-pdf/softwareRisk.pdf).
+vignette is also available [here](https://github.com/arnaldpuy/softwareRisk/raw/main/inst/extdata/vignette-pdf/softwareRisk.pdf).
 
 ## Workflow
 
