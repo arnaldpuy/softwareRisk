@@ -10,11 +10,11 @@
 #' and recomputes the path risk score under the independence assumption,
 #' using
 #'
-#' \deqn{P_k = 1 - \prod_{i=1}^{n_k} (1 - r_{k(v_i)})\.}
+#' \deqn{P_k = 1 - \prod_{i=1}^{n_k} (1 - r_{k(v_i)})}
 #'
 #' The improvement
 #'
-#' \deqn{\Delta R_k = R_{\text{orig}} - R_{\text{fix}}}
+#' \deqn{\Delta P_k = R_{\mathrm{orig}} - R_{\mathrm{fix}}}
 #'
 #' is used as the fill value in the heatmap cells.
 #'
@@ -24,9 +24,9 @@
 #' very bright cells correspond to paths dominated by a single risky node.
 #'
 #' @param all_paths_out A list returned by [all_paths_fun()], with elements
-#'   \code{$nodes} and \code{$paths}.
-#'   \code{$nodes} must contain at least the columns \code{name} and
-#'   \code{risk_score}. \code{$paths} must contain at least the columns
+#'   \code{nodes} and \code{paths}.
+#'   \code{nodes} must contain at least the columns \code{name} and
+#'   \code{risk_score}. \code{paths} must contain at least the columns
 #'   \code{path_id}, \code{path_nodes} (list-column of node names) and
 #'   \code{path_risk_score}.
 #' @param n_nodes Integer, number of top-risk nodes (by \code{risk_score})

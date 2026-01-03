@@ -42,9 +42,9 @@ risk_ua_sa_fun <- function(cyclo_sc, indeg_sc, btw_sc, sample_matrix, N, params,
 #'   \code{name}, \code{cyclomatic_complexity}, \code{indeg}, \code{btw};
 #'   \code{paths} must contain \code{path_id} and \code{path_nodes}.
 #' @param N Integer. Base sample size used for Sobol' matrices.
-#' @param order Passed to [sensobol::sobol_matrices()] and [sensobol::sobol_indices()] to
-#'   control which Sobol indices are computed (e.g., first/total/second order),
-#'   depending on your implementation.
+#' @param order Passed to the functions \code{sobol_matrices} and
+#' \code{sobol_indices} of the \pkg{sensobol} to control which Sobol indices are computed (e.g.,
+#' first/total/second order), depending on your implementation.
 #'
 #' @details
 #'

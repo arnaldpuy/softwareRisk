@@ -19,7 +19,6 @@ If fewer than two finite values remain, the function returns \code{0}.
 }
 \details{
 The Gini index ranges from 0 (perfect equality) to 1 (maximal inequality).
-This implementation delegates computation to \code{\link[ineq:ineq]{ineq::Gini()}}.
 }
 \examples{
 gini_index_fun(c(1, 1, 1, 1))

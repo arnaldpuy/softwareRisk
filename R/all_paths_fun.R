@@ -18,9 +18,9 @@
 #'
 #' The risk score for node \eqn{v_i} is computed as
 #'
-#' \deqn{r_{(v_i)} = \alpha\,\tilde{C}_{(v_i)} + \beta\, \tilde{d}_{(v_i)}^{\text{in}} + \gamma\,\tilde{b}_{(v_i)}},
+#' \deqn{r_{(v_i)} = \alpha\,\tilde{C}_{(v_i)} + \beta\, \tilde{d}_{(v_i)}^{\mathrm{in}} + \gamma\,\tilde{b}_{(v_i)}},
 #'
-#' where the tilde \eqn{\tilde{}} refers to normalization and the weights \eqn{\alpha},
+#' where the tilde \eqn{\tilde{\cdot}} refers to normalization and the weights \eqn{\alpha},
 #' \eqn{\beta} and \eqn{\gamma} reflect the relative importance of complexity, coupling
 #' and network position, with the constraint \eqn{\alpha + \beta + \gamma = 1}.
 #'

@@ -13,7 +13,6 @@
 #'
 #' @details
 #' The Gini index ranges from 0 (perfect equality) to 1 (maximal inequality).
-#' This implementation delegates computation to [ineq::Gini()].
 #'
 #' @return
 #' A numeric scalar giving the Gini index of `x`.
