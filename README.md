@@ -26,7 +26,9 @@ devtools::install_github("arnaldpuy/softwareRisk", build_vignettes = TRUE)
 
 ## Usage
 
-Please see the vignette for a walkthrough of the package utilities. A printable PDF version of this 
+Please see the vignette for a walkthrough of the package utilities. 
+
+A printable PDF version of this 
 vignette is also available [here](https://github.com/arnaldpuy/softwareRisk/raw/main/inst/extdata/vignette-pdf/softwareRisk.pdf).
 
 ## Citation 
