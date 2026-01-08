@@ -15,7 +15,7 @@ uncertainty_fun(all_paths_out, N, order)
 \item{N}{Integer. Base sample size used for Sobol' matrices.}
 
 \item{order}{Passed to the functions \code{sobol_matrices} and
-\code{sobol_indices} of the \pkg{sensobol} to control which Sobol indices are computed (e.g.,
+\code{sobol_indices} of the \pkg{sensobol} package to control which Sobol indices are computed (e.g.,
 first/total/second order), depending on your implementation.}
 }
 \value{
