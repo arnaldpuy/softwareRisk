@@ -12,7 +12,7 @@ Authors@R: c(
     )
   )
 Maintainer: Arnald Puy <arnald.puy@pm.me>
-Description: It leverages the network-like architecture of scientific models together with software quality metrics to identify chains of function calls that are more prone to generating and propagating errors. It operates on tbl_graph objects representing call dependencies between functions (callers and callees) and computes risk scores for individual functions and for paths (sequences of function calls) based on cyclomatic complexity, in-degree and betweenness centrality. The package supports variance-based uncertainty and sensitivity analyses to assess how risk scores change under alternative risk definitions.
+Description: It leverages the network-like architecture of scientific models together with software quality metrics to identify chains of function calls that are more prone to generating and propagating errors. It operates on tbl_graph objects representing call dependencies between functions (callers and callees) and computes risk scores for individual functions and for paths (sequences of function calls) based on cyclomatic complexity, in-degree and betweenness centrality. The package supports variance-based uncertainty and sensitivity analyses (see Puy et al. <doi:10.18637/jss.v102.i05>) to assess how risk scores change under alternative risk definitions.
 License: GPL-3
 Encoding: UTF-8
 LazyData: true

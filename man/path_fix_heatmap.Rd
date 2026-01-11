@@ -55,9 +55,10 @@ improve many risky paths (global chokepoints), while columns with a few
 very bright cells correspond to paths dominated by a single risky node.
 }
 \examples{
-\dontrun{
-all_paths_out <- all_paths_fun(g)
-res <- path_fix_heatmap(all_paths_out, n_nodes = 20, k_paths = 20)
-res$plot
-}
+data(synthetic_graph)
+out <- all_paths_fun(graph = synthetic_graph, alpha = 0.6, beta = 0.3,
+gamma = 0.1, complexity_col = "cyclo")
+res <- path_fix_heatmap(all_paths_out = out, n_nodes = 20, k_paths = 20)
+res
+
 }
