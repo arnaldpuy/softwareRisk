@@ -9,7 +9,10 @@ all_paths_fun(
   alpha = 0.6,
   beta = 0.3,
   gamma = 0.1,
-  complexity_col = "cyclomatic_complexity",
+  risk_form = c("additive", "power_mean"),
+  p = 1,
+  eps = 1e-12,
+  complexity_col = "cyclo",
   weight_tol = 1e-08
 )
 }
@@ -21,8 +24,17 @@ attribute specified by \code{complexity_col}.}
 \item{alpha, beta, gamma}{Numeric non-negative weights for the risk score,
 constrained such that \code{alpha + beta + gamma == 1} (within \code{weight_tol}).}
 
+\item{risk_form}{Character. Form used to combine normalized node metrics into a node risk score.
+One of \code{"additive"} or \code{"power_mean"}. Default \code{"additive"}.}
+
+\item{p}{Numeric scalar. Power parameter used when \code{risk_form = "power_mean"}.
+Must be finite and lie in the interval \eqn{[-1, 2]}. Default \code{1}.}
+
+\item{eps}{Numeric. Small positive constant \eqn{\epsilon} used for numerical stability in the
+\eqn{p \to 0} (geometric mean) case. Default \code{1e-12}.}
+
 \item{complexity_col}{Character scalar. Name of the node attribute containing
-cyclomatic complexity. Default \code{"cyclomatic_complexity"}.}
+cyclomatic complexity. Default \code{"cyclo"}.}
 
 \item{weight_tol}{Numeric tolerance for enforcing the weight-sum constraint.
 Default \code{1e-8}.}
@@ -50,13 +62,31 @@ nodes (out-degree = 0),
 }
 }
 \details{
-The risk score for node \eqn{v_i} is computed as
+The normalized node metrics are computed using \code{scales::rescale()} and denoted
+by a tilde \eqn{\tilde{\cdot}}.
 
-\deqn{r_{(v_i)} = \alpha\,\tilde{C}_{(v_i)} + \beta\, \tilde{d}_{(v_i)}^{\mathrm{in}} + \gamma\,\tilde{b}_{(v_i)}},
+If \code{risk_form = "additive"}, the risk score for node \eqn{v_i} is computed as
 
-where the tilde \eqn{\tilde{\cdot}} refers to normalization and the weights \eqn{\alpha},
-\eqn{\beta} and \eqn{\gamma} reflect the relative importance of complexity, coupling
-and network position, with the constraint \eqn{\alpha + \beta + \gamma = 1}.
+\deqn{r_{(v_i)} = \alpha\,\tilde{C}_{(v_i)} + \beta\, \tilde{d}_{(v_i)}^{\mathrm{in}} + \gamma\,\tilde{b}_{(v_i)}\,,}
+
+where the weights \eqn{\alpha}, \eqn{\beta} and \eqn{\gamma} reflect the relative
+importance of complexity, coupling and network position, with the constraint
+\eqn{\alpha + \beta + \gamma = 1}.
+
+If \code{risk_form = "power_mean"}, the risk score for node \eqn{v_i} is computed as
+the weighted power mean of normalized metrics:
+
+\deqn{r_{(v_i)} =
+\left(\alpha\,\tilde{C}_{(v_i)}^{p} + \beta\,\tilde{d}_{(v_i)}^{\mathrm{in}\,p} + \gamma\,\tilde{b}_{(v_i)}^{p}\right)^{1/p}\,,}
+
+where \eqn{p} is the power-mean parameter. In the limit \eqn{p \to 0}, this reduces
+to a weighted geometric mean, implemented with a small constant \eqn{\epsilon} to
+ensure numerical stability:
+
+\deqn{r_{(v_i)} =
+\exp\left(\alpha\log(\max(\tilde{C}_{(v_i)}, \epsilon)) +
+\beta\log(\max(\tilde{d}_{(v_i)}^{\mathrm{in}}, \epsilon)) +
+\gamma\log(\max(\tilde{b}_{(v_i)}, \epsilon))\right)\,.}
 
 The path-level risk score is calculated as
 
@@ -86,12 +116,29 @@ vector of cyclomatic complexity values in the same order as \code{path_nodes} /
 \code{path_str}.
 }
 \examples{
-# synthetic_graph is a tidygraph::tbl_graph with node attribute "cyclomatic_complexity"
+# synthetic_graph is a tidygraph::tbl_graph with node attribute "cyclo"
 data(synthetic_graph)
-out <- all_paths_fun(graph = synthetic_graph, alpha = 0.6, beta = 0.3,
-gamma = 0.1, complexity_col = "cyclo")
-out$nodes
-out$paths
+
+# additive risk (default)
+out1 <- all_paths_fun(
+  graph = synthetic_graph,
+  alpha = 0.6, beta = 0.3, gamma = 0.1,
+  risk_form = "additive",
+  complexity_col = "cyclo"
+)
+
+# power-mean risk (p = 0 ~ weighted geometric mean)
+out2 <- all_paths_fun(
+  graph = synthetic_graph,
+  alpha = 0.6, beta = 0.3, gamma = 0.1,
+  risk_form = "power_mean",
+  p = 0,
+  eps = 1e-12,
+  complexity_col = "cyclo"
+)
+
+out1$nodes
+out1$paths
 
 
 }

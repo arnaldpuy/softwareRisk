@@ -4,19 +4,25 @@
 \alias{uncertainty_fun}
 \title{Uncertainty and sensitivity analysis of node and path risk}
 \usage{
-uncertainty_fun(all_paths_out, N, order)
+uncertainty_fun(
+  all_paths_out,
+  N,
+  order,
+  risk_form = c("additive", "power_mean")
+)
 }
 \arguments{
-\item{all_paths_out}{A list produced by \code{\link[=all_paths_fun]{all_paths_fun()}} with elements
-\code{nodes} and \code{paths}. \code{nodes} must contain columns
-\code{name}, \code{cyclomatic_complexity}, \code{indeg}, \code{btw};
-\code{paths} must contain \code{path_id} and \code{path_nodes}.}
+\item{all_paths_out}{A list produced by \code{\link[=all_paths_fun]{all_paths_fun()}} with elements \code{nodes} and \code{paths}.
+\code{nodes} must contain columns \code{name}, \code{cyclomatic_complexity}, \code{indeg}, \code{btw};
+\code{paths} must contain \code{path_id}, \code{path_nodes}, \code{path_str}, and \code{hops}.}
 
 \item{N}{Integer. Base sample size used for Sobol' matrices.}
 
-\item{order}{Passed to the functions \code{sobol_matrices} and
-\code{sobol_indices} of the \pkg{sensobol} package to control which Sobol indices are computed (e.g.,
-first/total/second order), depending on your implementation.}
+\item{order}{Passed to \code{sensobol::sobol_matrices()} and \code{sensobol::sobol_indices()} to control
+which Sobol indices are computed (e.g., first/total/second order), depending on your implementation.}
+
+\item{risk_form}{Character. Risk definition used in the uncertainty/sensitivity analysis.
+One of \code{"additive"} or \code{"power_mean"}. Default \code{"additive"}.}
 }
 \value{
 A named list with:
@@ -26,48 +32,68 @@ A named list with:
 }
 }
 \description{
-Runs a full variance-based uncertainty and sensitivity analysis for
-node risk scores using the results returned by
-\code{\link[=all_paths_fun]{all_paths_fun()}} and the functions provided by the \pkg{sensobol} package (Puy et al. 2022).
+Runs a full variance-based uncertainty and sensitivity analysis for node risk
+scores using the results returned by \code{\link[=all_paths_fun]{all_paths_fun()}} and the functions provided
+by the \pkg{sensobol} package (Puy et al. 2022).
 }
 \details{
-To assess how sensitive the risk scores are to the choice of weighting
-parameters, this function explores many alternative combinations of
-weights in \eqn{(\alpha, \beta, \gamma)} and examines how resulting risk
-scores vary. The weights are randomly sampled under the constraint that they
-always sum to one, so each represents a different plausible balance between
-complexity (cyclomatic complexity), connectivity (in-degree) and centrality (betweenness).
+To assess how sensitive the risk scores are to the choice of weighting parameters,
+this function explores many alternative combinations of weights and (optionally)
+a power-mean parameter, and examines how resulting risk scores vary.
 
-For each node, risk scores are repeatedly recalculated using these
-alternative weight combinations, producing a distribution of possible
-outcomes. This distribution is then used to quantify both overall
-uncertainty in the risk scores and the relative influence of each
-weight on the results.
+When \code{risk_form = "additive"}, uncertainty is induced by sampling weight triplets
+\eqn{(\alpha, \beta, \gamma)} under the constraint \eqn{\alpha + \beta + \gamma = 1},
+representing different plausible balances between complexity, connectivity and centrality.
 
-For more information about the uncertainty and sensitivity analysis and the output
-of \code{\link[=uncertainty_fun]{uncertainty_fun()}}, see the \pkg{sensobol} package (Puy et al. 2022).
+When \code{risk_form = "power_mean"}, uncertainty is induced by sampling both the weights
+\eqn{(\alpha, \beta, \gamma)} (renormalized to sum to 1) and a power parameter \eqn{p}
+used in the node-risk definition:
+\deqn{r =
+\left(\alpha\,\tilde{C}^{p} + \beta\,(\tilde{d}^{\mathrm{in}})^{p} + \gamma\,\tilde{b}^{p}\right)^{1/p}\,.}
+
+For each node, risk scores are repeatedly recalculated using the sampled parameter
+combinations, producing a distribution of possible outcomes. This distribution is
+then used to quantify uncertainty in the risk scores and compute Sobol sensitivity
+indices for each sampled parameter.
+
+Path-level uncertainty is obtained by propagating node-level uncertainty draws through
+the path aggregation function:
+\deqn{P_k = 1 - \prod_{i=1}^{n_k} (1 - r_{k(v_i)})\,,}
+where \eqn{r_{k(v_i)}} are node risks along path \eqn{k}.
+
+For more information about the uncertainty and sensitivity analysis and the output of
+this function, see the \pkg{sensobol} package (Puy et al. 2022).
 
 The returned node table includes the following columns:
 \itemize{
 \item \code{name}: name of the node.
-\item \code{uncertainty_analysis}: numeric vector showing the uncertainty in the risk scores for each node.
-\item \code{sensitivity_indices}: a \code{data.table} showing the results of the sensitivity analysis.
+\item \code{uncertainty_analysis}: numeric vector giving the uncertainty draws in the node risk score.
+\item \code{sensitivity_analysis}: object returned by \code{sensobol::sobol_indices()} (per-node).
 }
 
 The returned paths table includes:
 \itemize{
+\item \code{path_id}: path identifier.
 \item \code{path_str}: sequence of function calls for each path.
-\item \code{hops}: Number of edges.
-\item \code{uncertainty analysis}: numeric vector showing the uncertainty in the risk score for each path.
+\item \code{hops}: number of edges.
+\item \code{uncertainty_analysis}: numeric vector giving the uncertainty draws in the path risk score.
 }
 }
 \examples{
 data(synthetic_graph)
 out <- all_paths_fun(graph = synthetic_graph, alpha = 0.6, beta = 0.3,
-gamma = 0.1, complexity_col = "cyclo")
-results <- uncertainty_fun(all_paths_out = out, N = 2^10, order = "first")
-results$nodes
-results$paths
+                     gamma = 0.1, complexity_col = "cyclo")
+
+# Additive risk
+results1 <- uncertainty_fun(all_paths_out = out, N = 2^10, order = "first",
+                            risk_form = "additive")
+
+# Power-mean risk
+results2 <- uncertainty_fun(all_paths_out = out, N = 2^10, order = "first",
+                            risk_form = "power_mean")
+
+results1$nodes
+results1$paths
 
 }
 \references{
