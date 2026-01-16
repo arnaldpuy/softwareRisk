@@ -79,10 +79,10 @@ risk_ua_sa_fun <- function(cyclo_sc, indeg_sc, btw_sc,
   ind <- sensobol::sobol_indices(Y = y, N = N, params = params, order = order)
 
   list(
-    ua = y[1:(2 * N)],   # keep your convention
+    ua = y[1:N],   # instead of y[1:(2 * N)]
     sa = ind,
-    mu = mean(y[1:(2 * N)]),
-    V  = stats::var(y[1:(2 * N)])
+    mu = mean(y[1:N]),
+    V  = stats::var(y[1:N])
   )
 }
 
@@ -108,13 +108,16 @@ risk_ua_sa_fun <- function(cyclo_sc, indeg_sc, btw_sc,
 #'
 #' For each node, risk scores are repeatedly recalculated using the sampled parameter
 #' combinations, producing a distribution of possible outcomes. This distribution is
-#' then used to quantify uncertainty in the risk scores and compute Sobol sensitivity
+#' then used to quantify uncertainty in the risk scores and compute Sobol' sensitivity
 #' indices for each sampled parameter.
 #'
 #' Path-level uncertainty is obtained by propagating node-level uncertainty draws through
 #' the path aggregation function:
 #' \deqn{P_k = 1 - \prod_{i=1}^{n_k} (1 - r_{k(v_i)})\,,}
 #' where \eqn{r_{k(v_i)}} are node risks along path \eqn{k}.
+#'
+#' All uncertainty metrics are computed from the first N
+#' Sobol draws (matrix A), while sensitivity indices use the full Sobol' design.
 #'
 #' @param all_paths_out A list produced by [all_paths_fun()] with elements `nodes` and `paths`.
 #'   `nodes` must contain columns `name`, `cyclomatic_complexity`, `indeg`, `btw`;
@@ -142,6 +145,8 @@ risk_ua_sa_fun <- function(cyclo_sc, indeg_sc, btw_sc,
 #'   \item `path_str`: sequence of function calls for each path.
 #'   \item `hops`: number of edges.
 #'   \item `uncertainty_analysis`: numeric vector giving the uncertainty draws in the path risk score.
+#'   \item `gini_index`: numeric vector giving the uncertainty draws in the gini index.
+#'   \item `risk_trend`: numeric vector giving the uncertainty draws in the risk trend.
 #' }
 #'
 #' @references
@@ -157,20 +162,22 @@ risk_ua_sa_fun <- function(cyclo_sc, indeg_sc, btw_sc,
 #' }
 #'
 #' @examples
+#' \donttest{
 #' data(synthetic_graph)
 #' out <- all_paths_fun(graph = synthetic_graph, alpha = 0.6, beta = 0.3,
 #'                      gamma = 0.1, complexity_col = "cyclo")
 #'
-#' # Additive risk
-#' results1 <- uncertainty_fun(all_paths_out = out, N = 2^10, order = "first",
+#' # Additive risk (increase N to at least 2^10 for a proper UA/SA)
+#' results1 <- uncertainty_fun(all_paths_out = out, N = 2^2, order = "first",
 #'                             risk_form = "additive")
 #'
-#' # Power-mean risk
-#' results2 <- uncertainty_fun(all_paths_out = out, N = 2^10, order = "first",
+#' # Power-mean risk (increase N to at least 2^10 for a proper UA/SA)
+#' results2 <- uncertainty_fun(all_paths_out = out, N = 2^2, order = "first",
 #'                             risk_form = "power_mean")
 #'
 #' results1$nodes
 #' results1$paths
+#' }
 #'
 #' @export
 #' @importFrom scales rescale
@@ -301,8 +308,36 @@ uncertainty_fun <- function(all_paths_out, N, order,
   # ---- propagate UA draws to paths ------------------------------------------
   path_prob_from_nodes <- function(risks) 1 - prod(1 - risks)
 
+  # helper: slope per draw (vectorised over draws)
+  slope_per_draw_from_nodes <- function(ua_mat) {
+    n_nodes <- nrow(ua_mat)
+    if (n_nodes < 2L) {
+      # slope is undefined or zero with < 2 points; return zeros
+      return(rep(0, ncol(ua_mat)))
+    }
+
+    x <- seq_len(n_nodes)
+    x_mean <- mean(x)
+    x_centered <- x - x_mean
+    denom <- sum(x_centered^2)
+
+    y_means <- colMeans(ua_mat)
+    y_centered <- sweep(ua_mat, 2, y_means, FUN = "-")
+
+    numer <- as.numeric(crossprod(x_centered, y_centered))
+    numer / denom
+  }
+
+  # helper: Gini per draw (column-wise)
+  gini_per_draw_from_nodes <- function(ua_mat) {
+    apply(ua_mat, 2, gini_index_fun)
+  }
+
   paths_dt <- data.table::as.data.table(paths_tbl)
-  P_k <- vector("list", nrow(paths_dt))
+
+  P_k        <- vector("list", nrow(paths_dt))
+  gini_list  <- vector("list", nrow(paths_dt))
+  trend_list <- vector("list", nrow(paths_dt))
 
   node_names <- node_dt[["name"]]
 
@@ -313,19 +348,43 @@ uncertainty_fun <- function(all_paths_out, N, order,
     idx <- idx[!is.na(idx)]
 
     if (length(idx) == 0) {
-      P_k[[i]] <- rep(NA_real_, 2 * N)
+      # no valid nodes; fall back to NA vectors using length of first UA
+      len_draws <- length(node_dt[["uncertainty_analysis"]][[1]])
+      P_k[[i]]        <- rep(NA_real_, len_draws)
+      gini_list[[i]]  <- rep(NA_real_, len_draws)
+      trend_list[[i]] <- rep(NA_real_, len_draws)
       next
     }
 
+    # rows = nodes on path, cols = draws
     ua_mat <- do.call(rbind, node_dt[["uncertainty_analysis"]][idx])
+    n_draws <- ncol(ua_mat)
+
+    # path risk per draw
     P_k[[i]] <- apply(ua_mat, 2, path_prob_from_nodes)
+
+    # Gini and slope per draw (vectors of length n_draws)
+    gini_list[[i]]  <- gini_per_draw_from_nodes(ua_mat)
+    trend_list[[i]] <- slope_per_draw_from_nodes(ua_mat)
   }
 
   data.table::set(paths_dt, j = "uncertainty_analysis", value = P_k)
+  data.table::set(paths_dt, j = "gini_index",           value = gini_list)
+  data.table::set(paths_dt, j = "risk_trend",           value = trend_list)
 
   # ---- final outputs ---------------------------------------------------------
-  node_dt_out <- node_dt[, c("name", "uncertainty_analysis", "sensitivity_analysis"), with = FALSE]
-  paths_out   <- paths_dt[, c("path_id", "path_str", "hops", "uncertainty_analysis"), with = FALSE]
+  node_dt_out <- node_dt[, c("name",
+                             "uncertainty_analysis",
+                             "sensitivity_analysis"),
+                         with = FALSE]
+
+  paths_out   <- paths_dt[, c("path_id",
+                              "path_str",
+                              "hops",
+                              "uncertainty_analysis",
+                              "gini_index",   # list-column: vector per draw
+                              "risk_trend"),  # list-column: vector per draw
+                          with = FALSE]
 
   list(nodes = node_dt_out, paths = paths_out)
 }

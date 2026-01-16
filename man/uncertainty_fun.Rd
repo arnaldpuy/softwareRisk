@@ -53,13 +53,16 @@ used in the node-risk definition:
 
 For each node, risk scores are repeatedly recalculated using the sampled parameter
 combinations, producing a distribution of possible outcomes. This distribution is
-then used to quantify uncertainty in the risk scores and compute Sobol sensitivity
+then used to quantify uncertainty in the risk scores and compute Sobol' sensitivity
 indices for each sampled parameter.
 
 Path-level uncertainty is obtained by propagating node-level uncertainty draws through
 the path aggregation function:
 \deqn{P_k = 1 - \prod_{i=1}^{n_k} (1 - r_{k(v_i)})\,,}
 where \eqn{r_{k(v_i)}} are node risks along path \eqn{k}.
+
+All uncertainty metrics are computed from the first N
+Sobol draws (matrix A), while sensitivity indices use the full Sobol' design.
 
 For more information about the uncertainty and sensitivity analysis and the output of
 this function, see the \pkg{sensobol} package (Puy et al. 2022).
@@ -77,23 +80,27 @@ The returned paths table includes:
 \item \code{path_str}: sequence of function calls for each path.
 \item \code{hops}: number of edges.
 \item \code{uncertainty_analysis}: numeric vector giving the uncertainty draws in the path risk score.
+\item \code{gini_index}: numeric vector giving the uncertainty draws in the gini index.
+\item \code{risk_trend}: numeric vector giving the uncertainty draws in the risk trend.
 }
 }
 \examples{
+\donttest{
 data(synthetic_graph)
 out <- all_paths_fun(graph = synthetic_graph, alpha = 0.6, beta = 0.3,
                      gamma = 0.1, complexity_col = "cyclo")
 
-# Additive risk
-results1 <- uncertainty_fun(all_paths_out = out, N = 2^10, order = "first",
+# Additive risk (increase N to at least 2^10 for a proper UA/SA)
+results1 <- uncertainty_fun(all_paths_out = out, N = 2^2, order = "first",
                             risk_form = "additive")
 
-# Power-mean risk
-results2 <- uncertainty_fun(all_paths_out = out, N = 2^10, order = "first",
+# Power-mean risk (increase N to at least 2^10 for a proper UA/SA)
+results2 <- uncertainty_fun(all_paths_out = out, N = 2^2, order = "first",
                             risk_form = "power_mean")
 
 results1$nodes
 results1$paths
+}
 
 }
 \references{

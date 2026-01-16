@@ -20,12 +20,11 @@
 #' @return
 #' A `ggplot2::theme` object.
 #'
-#' @examples
-#' \dontrun{
-#' ggplot(mtcars, aes(mpg, wt)) +
-#'   geom_point() +
+#' @examplesIf requireNamespace("ggplot2", quietly = TRUE)
+#' ggplot2::ggplot(mtcars, ggplot2::aes(mpg, wt)) +
+#'   ggplot2::geom_point() +
 #'   theme_AP()
-#' }
+#'
 #'
 #' @export
 #' @importFrom ggplot2 theme_bw theme element_blank element_rect element_text

@@ -22,11 +22,13 @@
 #' @return A \pkg{ggplot2} object.
 #'
 #' @examples
+#' \donttest{
 #' data(synthetic_graph)
 #' out <- all_paths_fun(graph = synthetic_graph, alpha = 0.6, beta = 0.3,
 #' gamma = 0.1, complexity_col = "cyclo")
 #' results <- uncertainty_fun(all_paths_out = out, N = 2^10, order = "first")
 #' path_uncertainty_plot(ua_sa_out = results, n_paths = 20)
+#' }
 #' @importFrom rlang .data
 #' @export
 path_uncertainty_plot <- function(ua_sa_out, n_paths = 20) {

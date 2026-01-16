@@ -33,9 +33,11 @@ vector of path risk values by computing the mean, minimum and maximum values, an
 these summaries for the \code{n_paths} most risky paths.
 }
 \examples{
+\donttest{
 data(synthetic_graph)
 out <- all_paths_fun(graph = synthetic_graph, alpha = 0.6, beta = 0.3,
 gamma = 0.1, complexity_col = "cyclo")
 results <- uncertainty_fun(all_paths_out = out, N = 2^10, order = "first")
 path_uncertainty_plot(ua_sa_out = results, n_paths = 20)
+}
 }

@@ -28,10 +28,10 @@ This theme is intended to be composable:
 it should be added to a ggplot object using \code{+ theme_AP()}.
 }
 \examples{
-\dontrun{
-ggplot(mtcars, aes(mpg, wt)) +
-  geom_point() +
+\dontshow{if (requireNamespace("ggplot2", quietly = TRUE)) withAutoprint(\{ # examplesIf}
+ggplot2::ggplot(mtcars, ggplot2::aes(mpg, wt)) +
+  ggplot2::geom_point() +
   theme_AP()
-}
 
+\dontshow{\}) # examplesIf}
 }
