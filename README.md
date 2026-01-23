@@ -1,3 +1,5 @@
+[![](https://www.r-pkg.org/badges/version/softwareRisk?color=orange)](https://cran.r-project.org/package=softwarewRisk)
+
 # softwareRisk: Computation of node and path-level risk scores in scientific models
 
 [Arnald Puy](https://www.arnaldpuy.com/)
