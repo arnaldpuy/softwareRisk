@@ -30,7 +30,7 @@ the software.
 A printable PDF version of this 
 vignette is also available [here](https://github.com/arnaldpuy/softwareRisk/raw/main/inst/extdata/vignette-pdf/softwareRisk.pdf).
 
-## Workflow
+# Workflow
 
 We first load the packages needed for the analysis.
 
@@ -39,7 +39,7 @@ library(softwareRisk)
 library(tidygraph)
 ```
 
-### Prepare the required datasets
+## Prepare the required datasets
 
 `softwareRisk` draws on the representation of the model's source code as a directed call 
 graph $G = (V,E)$ in which each node $v_i \in V$ is a function or subroutine and each 
@@ -89,7 +89,7 @@ graph
 
 Once this is done, the data is prepared for `softwareRisk`.
 
-### Analysis
+## Analysis
 
 Here we illustrate the functions of `softwareRisk` by using the build-in data
 `synthetic_graph`. It consists of five entry nodes, 35 middle nodes and
@@ -112,28 +112,52 @@ synthetic_graph
 The next step is to compute the in-degree and betweenness centrality of each node, calculate its 
 risk score and identify all simple paths through the directed function-call graph. All this
 is done with the ``all_paths_fun`` function. The in-degree and betweenness of the nodes
-are calculated internally by functions in the `igraph` package. The risk score for node $v_i$ is
-computed as
+are calculated internally by functions in the `igraph` package. 
+
+### Different definitions of software risk
+
+We implement two complementary definitions of software risk to reflect different ways risk may be conceptualized in software systems.
+
+#### Additive risk definition
+
+The first definition treats risk as *additive*. A function may be considered risky because it is complex, highly depended upon or structurally central. A high value in any one attribute increases risk, but this effect can be partially offset by low values in the others. Risk is computed as a weighted sum of normalized cyclomatic complexity, in-degree and betweenness, with weights controlling their relative importance:
 
 \begin{equation}
-r_{(v_i)} = \alpha\,\tilde{C}_{(v_i)} + \beta\, \tilde{d}_{(v_i)}^{\text{in}} + \gamma\,\tilde{b}_{(v_i)}\,,
+r^{\text{(add)}}_{(v_i)} = \alpha\,\tilde{C}_{(v_i)} + \beta\, \tilde{d}_{(v_i)}^{\text{in}} + \gamma\,\tilde{b}_{(v_i)}\,,
+\label{eq:composite_risk_score_first}
 \end{equation}
 
 where the tilde $\tilde{}$ refers to normalization, $C$ denotes cyclomatic complexity, $d^{\text{in}}$ refers
-to in-degree and $b$ denotes betweenness. The weights $\alpha$, $\beta$ and $\gamma$ reflect the relative importance of complexity, coupling and network position. High $r$ values indicate functions that are complex and/or highly interconnected and hence potential points of structural vulnerability.
+to in-degree and $b$ denotes betweenness. The weights $\alpha$, $\beta$ and $\gamma$ reflect the relative importance of complexity, coupling and network position and can be defined by the analyst, with the
+constraint that $\alpha+\beta+\gamma =1$. High $r$ values indicate functions that are complex and/or highly interconnected and hence potential points of structural vulnerability.
 
-Path-level risk scores are defined as
+#### Power-mean risk definition
+
+The second definition allows risk to arise either from the *joint presence of multiple risk factors* or from a *single dominant vulnerability*. This definition uses a power-mean aggregation of the same three attributes. The power parameter $p$ controls how attributes combine: values of $p < 1$ emphasize functions where several risk factors co-occur, while values of $p > 1$ increasingly focus on the largest individual contributor. When $p = 1$, the power-mean formulation reduces to the additive risk definition.
+
+\begin{equation}
+r^{(p)}_{(v_i)} =
+\left(
+\alpha\, \tilde{C}_{(v_i)}^{p}
++ \beta\, \tilde{d}_{(v_i)}^{\mathrm{in}\,p}
++ \gamma\, \tilde{b}_{(v_i)}^{p}
+\right)^{1/p},
+\qquad p \in [-1,2].
+\label{eq:composite_risk_score_power}
+\end{equation}
+
+## Path-level risk scores
+
+The risk scores computed at the function level are then aggregated at the path level as
 
 \begin{equation}
 P_k = 1 - \prod_{i=1}^{n_k} (1 - r_{k(v_i)})\,,
 \label{eq:independent_events}
 \end{equation}
 
-where $r_{k(v_i)}$ is the risk of the $i$-th function in path $k$ and $n_k$ is the number of functions in that path. The equation above behaves like a saturating OR-operator: $P_k$ is at least as large as the maximum individual function risk and monotonically increases as more functions on the path become risky, approaching 1 when several functions have high risk scores. High $P_k$ scores thus identify not only vulnerable paths, but also paths whose potential failure can have a larger cascading effect into other parts of the system through their shared high-centrality functions.
+where $r_{k(v_i)}$ is the risk of the $i$-th function in path $k$ and $n_k$ is the number of functions in that path. $P_k$ is at least as large as the maximum individual function risk and monotonically increases as more functions on the path become risky, approaching 1 when several functions have high risk scores. High $P_k$ scores thus identify not only vulnerable paths, but also paths whose potential failure can have a larger cascading effect into other parts of the system through their shared high-centrality functions.
 
-In this example, we set $\alpha=0.6$, $\beta=0.3$ and $\gamma = 0.1$ to adopt a definition of risk
-that prioritizes defect-proneness and the likelihood of unexpected behaviours, thus relegating propagation
-potential as secondary. Other weights are possible, with the only constrain that $\alpha + \beta + \gamma = 1$.
+In this example, we adopt an additive definition of risk and set $\alpha=0.6$, $\beta=0.3$ and $\gamma = 0.1$, thus prioritizing defect-proneness and the likelihood of unexpected behaviours and relegating propagation potential as secondary. 
 
 ```{r all_paths}
 
@@ -195,11 +219,14 @@ plot_output <- plot_top_paths_fun(graph = synthetic_graph,
 
 ### Uncertainty and sensitivity analysis
 
-`softwareRisk` also enables the analyst to perform uncertainty and sensitivity analyses of risk score calculations by leveraging the sensobol package [@puy2022a]. By systematically varying the relative contribution of cyclomatic complexity and structural metrics such as in-degree and betweenness, the package allows users to evaluate how sensitive node- and path-level risk scores are to modelling assumptions. This approach makes it possible to assess the robustness of the identification of high-risk paths under alternative definitions of risk. 
+`softwareRisk` also enables the analyst to perform uncertainty and sensitivity analyses of risk and path score calculations by leveraging the sensobol package [@puy2022a]. By systematically the definition of risk
+and the weights $(\alpha, \beta, \gamma)$ (and $p$ in the power-mean case), the package allows users to evaluate how sensitive node- and path-level risk scores are to different risk conceptualizations. This approach makes it possible to assess the robustness of the identification of high-risk paths under alternative definitions of risk. 
 
 The relative weights assigned to cyclomatic complexity and structural metrics (in-degree and betweenness) are parameterized by the coefficients $\alpha$, $\beta$, and $\gamma$, which are randomly sampled and internally transformed into normalized weights ($\alpha_{\mathrm{raw}}$, $\beta_{\mathrm{raw}}$, and $\gamma_{\mathrm{raw}}$) that sum to one.
 
-Uncertainty and sensitivity analyses are implemented through the function `uncertainty_fun`:
+Uncertainty and sensitivity analyses are implemented through the function `uncertainty_fun`. The user
+needs to define the order of the effects explored (`first`, `second` or `third`) as well as the
+functional form of risk explored (either `additive` or `power_mean`).
 
 ```{r uncertainty}
 
@@ -207,7 +234,8 @@ Uncertainty and sensitivity analyses are implemented through the function `uncer
 
 uncertainty_analysis <- uncertainty_fun(all_paths_out = output, 
                                         N = 2^10, 
-                                        order = "first")
+                                        order = "first", 
+                                        risk_form = "power_mean")
 
 # Print the top five rows ------------------------------------------------------
 
@@ -216,11 +244,12 @@ lapply(uncertainty_analysis, function(x) head(x, 5))
 
 The output is a list with two slots:
 
-* `$nodes`: a `name` column with the name of the node, an `uncertainty_analysis` column with a list of all the node-level risk scores after randomizing $\alpha$, $\beta$ and $\gamma$, and a `sensitivity_analysis` column with a data.table informing of the results of the sensitivity analysis.
+* `$nodes`: a `name` column with the name of the node, an `uncertainty_analysis` column with a list of all the node-level risk scores after randomizing $\alpha$, $\beta$ and $\gamma$, and a `sensitivity_analysis` column with a data.table informing of the results of the sensitivity analysis. The `sensitivity_analysis` column can be unlisted and inspected as any other `data.table`. See the `sensobol` package for information on first-order ($S_i$) and total-order ($T_i$) indices [@puy2022a].
 
-* `$paths`: a `path_id` column with the ID number of the path, a `path_str` column informing on the sequence of functions calls for that path, a `hops` column informing on the number of edges traversed along the path, and an `uncertainty_analysis` with a vector of path-level risk scores after the uncertainty analysis. 
-
-The `sensitivity_analysis` column can be unlisted and inspected as any other `data.table`. See the `sensobol` package for information on first-order ($S_i$) and total-order ($T_i$) indices [@puy2022a].
+* `$paths`: a `path_id` column with the ID number of the path, a `path_str` column informing on the sequence of functions calls for that path, a `hops` column informing on the number of edges traversed along the path and three columns informing on the results of the uncertainty analysis (UA): 
+  - `uncertainty_analysis`: vector of path-level risk scores after the UA.
+  - `gini_index`: vector of gini_index values after the UA.
+  - `risk_trend`: vector of risk_slope values after the UA.
 
 The analyst can also plot the top $n$ risky paths and their uncertainty with the function `path_uncertainty_plot`. The error bars encompass the minimum, mean and maximum $P_k$ value for that path after the uncertainty analysis.
 
