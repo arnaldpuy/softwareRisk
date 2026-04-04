@@ -42,7 +42,7 @@
   multiple functions.
 - Added `eps` parameter to `uncertainty_fun()` for forwarding to the risk evaluation.
 - Corrected `@return` documentation for `path_cc` in `all_paths_fun()`.
-- Updated `inst/CITATION` to version 0.1.1.
+- Updated `inst/CITATION` to version 0.2.0.
 - Removed `NAMESPACE.bak`.
 - Removed redundant `!is.na(x)` guard in `slope_fun()` and `gini_index_fun()`.
 - Replaced three sequential `vapply` loops in `path_uncertainty_plot()` with a single pass.
