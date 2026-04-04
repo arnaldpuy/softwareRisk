@@ -4,12 +4,7 @@
 \alias{uncertainty_fun}
 \title{Uncertainty and sensitivity analysis of node and path risk}
 \usage{
-uncertainty_fun(
-  all_paths_out,
-  N,
-  order,
-  risk_form = c("additive", "power_mean")
-)
+uncertainty_fun(all_paths_out, N, order, eps = 1e-12)
 }
 \arguments{
 \item{all_paths_out}{A list produced by \code{\link[=all_paths_fun]{all_paths_fun()}} with elements \code{nodes} and \code{paths}.
@@ -21,40 +16,44 @@ uncertainty_fun(
 \item{order}{Passed to \code{sensobol::sobol_matrices()} and \code{sensobol::sobol_indices()} to control
 which Sobol indices are computed (e.g., first/total/second order), depending on your implementation.}
 
-\item{risk_form}{Character. Risk definition used in the uncertainty/sensitivity analysis.
-One of \code{"additive"} or \code{"power_mean"}. Default \code{"additive"}.}
+\item{eps}{Numeric. Small positive constant \eqn{\epsilon} used for numerical stability
+in the \eqn{p \to 0} evaluation. Default \code{1e-12}.}
 }
 \value{
 A named list with:
 \describe{
-\item{nodes}{A data.table of node results.}
-\item{paths}{A data.table of path results.}
+\item{nodes}{A tibble of node results.}
+\item{paths}{A tibble of path results.}
 }
 }
 \description{
-Runs a full variance-based uncertainty and sensitivity analysis for node risk
-scores using the results returned by \code{\link[=all_paths_fun]{all_paths_fun()}} and the functions provided
-by the \pkg{sensobol} package (Puy et al. 2022).
+Runs a full variance-based uncertainty and sensitivity analysis (UA/SA) for node
+risk scores using the results returned by \code{\link[=all_paths_fun]{all_paths_fun()}} and the functions
+provided by the \pkg{sensobol} package (Puy et al. 2022).
 }
 \details{
-To assess how sensitive the risk scores are to the choice of weighting parameters,
-this function explores many alternative combinations of weights and (optionally)
-a power-mean parameter, and examines how resulting risk scores vary.
-
-When \code{risk_form = "additive"}, uncertainty is induced by sampling weight triplets
-\eqn{(\alpha, \beta, \gamma)} under the constraint \eqn{\alpha + \beta + \gamma = 1},
-representing different plausible balances between complexity, connectivity and centrality.
-
-When \code{risk_form = "power_mean"}, uncertainty is induced by sampling both the weights
-\eqn{(\alpha, \beta, \gamma)} (renormalized to sum to 1) and a power parameter \eqn{p}
-used in the node-risk definition:
+Uncertainty is induced by jointly sampling the weights
+\eqn{(\alpha, \beta, \gamma)} (renormalized to sum to 1) and the power parameter
+\eqn{p \in [-1, 2]} used in the node-risk definition:
 \deqn{r =
 \left(\alpha\,\tilde{C}^{p} + \beta\,(\tilde{d}^{\mathrm{in}})^{p} + \gamma\,\tilde{b}^{p}\right)^{1/p}\,.}
 
 For each node, risk scores are repeatedly recalculated using the sampled parameter
-combinations, producing a distribution of possible outcomes. This distribution is
-then used to quantify uncertainty in the risk scores and compute Sobol' sensitivity
-indices for each sampled parameter.
+combinations, producing a distribution of possible outcomes. Sobol' first-order
+and/or total-order sensitivity indices are then computed for all four parameters
+(\eqn{\alpha}, \eqn{\beta}, \eqn{\gamma}, and \eqn{p}), quantifying how much of
+the variance in the node risk score is attributable to each parameter.
+
+\strong{Parameter labels and the Sobol' design.}
+Internally the design samples four independent \eqn{U(0,1)} values
+(\code{a_raw}, \code{b_raw}, \code{c_raw}, \code{p_raw}) because the Sobol' quasi-random sequence
+requires independent uniform inputs.  Before evaluating the risk model, the raw
+draws are transformed: the three weight draws are normalised to sum to one,
+yielding \eqn{\alpha}, \eqn{\beta}, \eqn{\gamma}; and \code{p_raw} is mapped linearly
+to \eqn{p \in [-1, 2]}.  The sensitivity indices are then attributed to the
+\emph{transformed} parameters and the output labels them as \code{alpha}, \code{beta}, \code{gamma},
+and \code{p} rather than the internal raw names, so the results are directly
+interpretable in terms of the model parameters.
 
 Path-level uncertainty is obtained by propagating node-level uncertainty draws through
 the path aggregation function:
@@ -70,8 +69,13 @@ this function, see the \pkg{sensobol} package (Puy et al. 2022).
 The returned node table includes the following columns:
 \itemize{
 \item \code{name}: name of the node.
-\item \code{uncertainty_analysis}: numeric vector giving the uncertainty draws in the node risk score.
-\item \code{sensitivity_analysis}: object returned by \code{sensobol::sobol_indices()} (per-node).
+\item \code{uncertainty_analysis}: numeric vector of length \eqn{N} giving the
+uncertainty draws in the node risk score (from Sobol matrix A).
+\item \code{sensitivity_analysis}: object returned by \code{sensobol::sobol_indices()}
+for that node, containing Sobol' indices labelled \code{alpha}, \code{beta}, \code{gamma},
+and \code{p}.  These correspond to the normalised weights and the power-mean
+exponent respectively.  The indices are computed on the transformed
+parameters (see Details).
 }
 
 The returned paths table includes:
@@ -90,16 +94,11 @@ data(synthetic_graph)
 out <- all_paths_fun(graph = synthetic_graph, alpha = 0.6, beta = 0.3,
                      gamma = 0.1, complexity_col = "cyclo")
 
-# Additive risk (increase N to at least 2^10 for a proper UA/SA)
-results1 <- uncertainty_fun(all_paths_out = out, N = 2^2, order = "first",
-                            risk_form = "additive")
-
 # Power-mean risk (increase N to at least 2^10 for a proper UA/SA)
-results2 <- uncertainty_fun(all_paths_out = out, N = 2^2, order = "first",
-                            risk_form = "power_mean")
+results <- uncertainty_fun(all_paths_out = out, N = 2^2, order = "first")
 
-results1$nodes
-results1$paths
+results$nodes
+results$paths
 }
 
 }

@@ -11,22 +11,21 @@ risk_ua_sa_fun(
   sample_matrix,
   N,
   params,
+  params_labels,
   order,
-  risk_form = c("additive", "power_mean"),
   eps = 1e-12
 )
 }
+\arguments{
+\item{params_labels}{Character vector of length 4 giving the labels to use in the
+\code{sensobol::sobol_indices()} output (typically \code{c("alpha","beta","gamma","p")}).}
+}
 \description{
 Computes a vector of node-level risk scores under a Sobol' sampling design and
-returns both the uncertainty-analysis draws and Sobol sensitivity indices.
+returns both the uncertainty-analysis draws and Sobol' sensitivity indices.
 }
 \details{
-For \code{risk_form = "additive"}, the node risk score is
-\deqn{r = \alpha\,\tilde{C} + \beta\,\tilde{d}^{\mathrm{in}} + \gamma\,\tilde{b}\,,}
-where \eqn{\tilde{C}}, \eqn{\tilde{d}^{\mathrm{in}}}, and \eqn{\tilde{b}} are scaled
-inputs and \eqn{\alpha + \beta + \gamma = 1}.
-
-For \code{risk_form = "power_mean"}, the node risk score is computed as a (weighted) power mean
+The node risk score is computed as a (weighted) power mean
 with exponent \eqn{p}:
 \deqn{r =
 \left(\alpha\,\tilde{C}^{p} + \beta\,(\tilde{d}^{\mathrm{in}})^{p} + \gamma\,\tilde{b}^{p}\right)^{1/p}\,.}
@@ -36,5 +35,13 @@ with a small constant \eqn{\epsilon} to avoid \eqn{\log(0)}:
 \deqn{r = \exp\left(\alpha\log(\max(\tilde{C},\epsilon)) +
 \beta\log(\max(\tilde{d}^{\mathrm{in}},\epsilon)) +
 \gamma\log(\max(\tilde{b},\epsilon))\right)\,.}
+
+Internally the Sobol' design samples four independent \eqn{U(0,1)} values
+(\code{a_raw}, \code{b_raw}, \code{c_raw}, \code{p_raw}). These are transformed before the model is
+evaluated: the three weight draws are normalised to sum to one, yielding
+\eqn{\alpha}, \eqn{\beta}, \eqn{\gamma}; and \code{p_raw} is mapped to
+\eqn{p \in [-1, 2]}. The sensitivity indices are attributed to the
+transformed parameters and reported under the labels \code{alpha}, \code{beta}, \code{gamma},
+and \code{p}.  The raw names are used only for constructing the Sobol' design matrix.
 }
 \keyword{internal}

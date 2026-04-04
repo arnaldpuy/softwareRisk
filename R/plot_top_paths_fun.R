@@ -17,7 +17,7 @@
 #' @param model.name Character scalar used in the plot title (e.g., model name).
 #' @param language Character scalar used in the plot title (e.g., language name).
 #' @param top_n Integer. Number of highest-risk paths to display (default 10).
-#' @param alpha_non_top Numeric in \deqn{[0, 1]}. Alpha (transparency) for edges that are
+#' @param alpha_non_top Numeric between 0 and 1. Alpha (transparency) for edges that are
 #'   not on the top-risk paths. Smaller values fade background edges more.
 #' @details
 #' The function selects the `top_n` paths by sorting `paths_tbl` on
@@ -63,7 +63,8 @@
 #' @importFrom ggraph ggraph geom_edge_link0 geom_node_point scale_edge_colour_gradient scale_edge_width
 #' @importFrom ggplot2 aes scale_size_continuous scale_fill_manual guides labs theme element_blank ggtitle margin
 #' @importFrom grid arrow unit
-#' @importFrom rlang .data
+#' @importFrom rlang .data %||%
+#' @importFrom stats setNames
 #
 plot_top_paths_fun <- function(graph,
                                all_paths_out,
@@ -94,15 +95,20 @@ plot_top_paths_fun <- function(graph,
     return(invisible(NULL))
   }
 
-  # If nodes_tbl is missing, derive a minimal one from graph (fallback) -------
+  # Validate nodes_tbl ----------------------------------------------------------
 
   if (is.null(nodes_tbl) || !is.data.frame(nodes_tbl) || nrow(nodes_tbl) == 0) {
-    ig_tmp <- tidygraph::as.igraph(graph)
-    nodes_tbl <- tibble::tibble(
-      name = igraph::V(ig_tmp)$name,
-      indeg = as.numeric(igraph::degree(ig_tmp, mode = "in")),
-      cyclomatic_complexity = igraph::vertex_attr(ig_tmp, "cyclomatic_complexity")
-    )
+    stop("`all_paths_out` must be the output of all_paths_fun() ",
+         "(a list with $nodes and $paths containing node-level metrics).",
+         call. = FALSE)
+  }
+
+  required_node_cols <- c("name", "indeg", "cyclomatic_complexity", "risk_score", "btw")
+  missing_node_cols <- setdiff(required_node_cols, names(nodes_tbl))
+  if (length(missing_node_cols) > 0) {
+    stop("`all_paths_out$nodes` is missing required columns: ",
+         paste(missing_node_cols, collapse = ", "),
+         call. = FALSE)
   }
 
   # ---- Identify top risky paths ----------------------------------------------

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(R CMD build .)",
+      "Bash(R CMD check --as-cran softwareRisk_0.2.0.tar.gz)",
+      "Bash(R CMD:*)",
+      "Bash(R:*)",
+      "Bash(Rscript:*)"
+    ]
+  }
+}

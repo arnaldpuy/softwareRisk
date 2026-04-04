@@ -50,6 +50,8 @@
 #' res
 #'
 #' @importFrom rlang .data
+#' @importFrom ggplot2 scale_fill_viridis_c geom_tile
+#' @importFrom stats setNames
 #' @export
 path_fix_heatmap <- function(all_paths_out, n_nodes = 20, k_paths = 20) {
 

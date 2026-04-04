@@ -89,8 +89,8 @@ plot_output <- plot_top_paths_fun(graph = synthetic_graph,
 
 # Run uncertainty analysis -----------------------------------------------------
 
-uncertainty_analysis <- uncertainty_fun(all_paths_out = output, 
-                                        N = 2^10, 
+uncertainty_analysis <- uncertainty_fun(all_paths_out = output,
+                                        N = 2^10,
                                         order = "first")
 
 # Print the top five rows ------------------------------------------------------
@@ -100,4 +100,33 @@ lapply(uncertainty_analysis, function(x) head(x, 5))
 ## ----plot_uncert--------------------------------------------------------------
 
 path_uncertainty_plot(ua_sa_out = uncertainty_analysis, n_paths = 20)
+
+## ----sa_single_node-----------------------------------------------------------
+
+# Sobol' indices for the first node
+si_node1 <- uncertainty_analysis$nodes$sensitivity_analysis[[1]]$results
+si_node1
+
+## ----sa_combine---------------------------------------------------------------
+
+sa_all <- do.call(rbind, Map(
+  function(sa, nm) data.frame(sa$results, name = nm, stringsAsFactors = FALSE),
+  uncertainty_analysis$nodes$sensitivity_analysis,
+  uncertainty_analysis$nodes$name
+))
+
+head(sa_all)
+
+## ----sa_plot, fig.height=2.5, fig.width=4-------------------------------------
+
+library(ggplot2)
+
+ggplot(sa_all, aes(x = parameters, y = original, fill = sensitivity)) +
+  geom_boxplot(alpha = 0.7) +
+  scale_fill_manual(
+    values   = c(Si = "#F8766D", Ti = "#00BFC4"),
+    labels   = c(expression(S[i]), expression(T[i]))
+  ) +
+  labs(x = "Parameter", y = "Sobol\u2019 index", fill = "Index") +
+  theme_bw()
 

@@ -30,11 +30,12 @@
 #' slope_fun(c(NA, 1, 2, Inf, 3))
 #'
 #' @export
-#' @importFrom stats lm coef
 slope_fun <- function(x) {
 
-  x <- x[is.finite(x) & !is.na(x)]
+  x <- x[is.finite(x)]
   if (length(x) <= 1) return(0)
 
-  as.numeric(stats::coef(stats::lm(x ~ seq_along(x)))[2])
+  n <- length(x)
+  xi <- seq_len(n)
+  as.numeric((n * sum(xi * x) - sum(xi) * sum(x)) / (n * sum(xi^2) - sum(xi)^2))
 }

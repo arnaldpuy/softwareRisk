@@ -1,0 +1,13 @@
+* using log directory ‘/Users/arnaldpuy/Documents/R_packages/softwareRisk/..Rcheck’
+* using R version 4.5.2 (2025-10-31)
+* using platform: aarch64-apple-darwin20
+* R was compiled by
+    Apple clang version 16.0.0 (clang-1600.0.26.6)
+    GNU Fortran (GCC) 14.2.0
+* running under: macOS Tahoe 26.3.1
+* using session charset: UTF-8
+* checking for file ‘./DESCRIPTION’ ... ERROR
+Required field missing or empty:
+  ‘Author’
+* DONE
+Status: 1 ERROR

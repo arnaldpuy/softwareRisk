@@ -22,12 +22,15 @@ together with software quality metrics to identify risky paths, which are define
 of its functions and the extent to which errors can cascade along and beyond their 
 execution order. It operates on `tbl_graph` objects representing 
 call dependencies between functions (callers and callees). By leveraging the `sensobol` 
-package [@puy2022a], `sofwareRisk` also supports variance-based uncertainty and sensitivity analyses
+package [@puy2022a], `softwareRisk` also supports variance-based uncertainty and sensitivity analyses
 to evaluate how the identification of risky function-call paths varies under alternative assumptions 
 about the relative importance of function complexity, coupling and structural position within 
 the software.
 
-## Workflow
+A printable PDF version of this 
+vignette is also available [here](https://github.com/arnaldpuy/softwareRisk/raw/main/inst/extdata/vignette-pdf/softwareRisk.pdf).
+
+# Workflow
 
 We first load the packages needed for the analysis.
 
@@ -36,7 +39,7 @@ library(softwareRisk)
 library(tidygraph)
 ```
 
-### Prepare the required datasets
+## Prepare the required datasets
 
 `softwareRisk` draws on the representation of the model's source code as a directed call 
 graph $G = (V,E)$ in which each node $v_i \in V$ is a function or subroutine and each 
@@ -86,7 +89,7 @@ graph
 
 Once this is done, the data is prepared for `softwareRisk`.
 
-### Analysis
+## Analysis
 
 Here we illustrate the functions of `softwareRisk` by using the build-in data
 `synthetic_graph`. It consists of five entry nodes, 35 middle nodes and
@@ -109,28 +112,39 @@ synthetic_graph
 The next step is to compute the in-degree and betweenness centrality of each node, calculate its 
 risk score and identify all simple paths through the directed function-call graph. All this
 is done with the ``all_paths_fun`` function. The in-degree and betweenness of the nodes
-are calculated internally by functions in the `igraph` package. The risk score for node $v_i$ is
-computed as
+are calculated internally by functions in the `igraph` package. 
+
+### Definition of software risk
+
+Risk is computed using a weighted power-mean aggregation of normalized cyclomatic complexity, in-degree and betweenness. The power parameter $p$ controls how attributes combine: values of $p < 1$ emphasize functions where several risk factors co-occur, while values of $p > 1$ increasingly focus on the largest individual contributor. When $p = 1$, the formula reduces to a simple weighted sum (additive risk).
 
 \begin{equation}
-r_{(v_i)} = \alpha\,\tilde{C}_{(v_i)} + \beta\, \tilde{d}_{(v_i)}^{\text{in}} + \gamma\,\tilde{b}_{(v_i)}\,,
+r^{(p)}_{(v_i)} =
+\left(
+\alpha\, \tilde{C}_{(v_i)}^{p}
++ \beta\, \tilde{d}_{(v_i)}^{\mathrm{in}\,p}
++ \gamma\, \tilde{b}_{(v_i)}^{p}
+\right)^{1/p},
+\qquad p \in [-1,2].
+\label{eq:composite_risk_score_power}
 \end{equation}
 
 where the tilde $\tilde{}$ refers to normalization, $C$ denotes cyclomatic complexity, $d^{\text{in}}$ refers
-to in-degree and $b$ denotes betweenness. The weights $\alpha$, $\beta$ and $\gamma$ reflect the relative importance of complexity, coupling and network position. High $r$ values indicate functions that are complex and/or highly interconnected and hence potential points of structural vulnerability.
+to in-degree and $b$ denotes betweenness. The weights $\alpha$, $\beta$ and $\gamma$ reflect the relative importance of complexity, coupling and network position and can be defined by the analyst, with the
+constraint that $\alpha+\beta+\gamma =1$. High $r$ values indicate functions that are complex and/or highly interconnected and hence potential points of structural vulnerability.
 
-Path-level risk scores are defined as
+## Path-level risk scores
+
+The risk scores computed at the function level are then aggregated at the path level as
 
 \begin{equation}
 P_k = 1 - \prod_{i=1}^{n_k} (1 - r_{k(v_i)})\,,
 \label{eq:independent_events}
 \end{equation}
 
-where $r_{k(v_i)}$ is the risk of the $i$-th function in path $k$ and $n_k$ is the number of functions in that path. The equation above behaves like a saturating OR-operator: $P_k$ is at least as large as the maximum individual function risk and monotonically increases as more functions on the path become risky, approaching 1 when several functions have high risk scores. High $P_k$ scores thus identify not only vulnerable paths, but also paths whose potential failure can have a larger cascading effect into other parts of the system through their shared high-centrality functions.
+where $r_{k(v_i)}$ is the risk of the $i$-th function in path $k$ and $n_k$ is the number of functions in that path. $P_k$ is at least as large as the maximum individual function risk and monotonically increases as more functions on the path become risky, approaching 1 when several functions have high risk scores. High $P_k$ scores thus identify not only vulnerable paths, but also paths whose potential failure can have a larger cascading effect into other parts of the system through their shared high-centrality functions.
 
-In this example, we set $\alpha=0.6$, $\beta=0.3$ and $\gamma = 0.1$ to adopt a definition of risk
-that prioritizes defect-proneness and the likelihood of unexpected behaviours, thus relegating propagation
-potential as secondary. Other weights are possible, with the only constrain that $\alpha + \beta + \gamma = 1$.
+In this example, we set $p=1$ (additive risk), $\alpha=0.6$, $\beta=0.3$ and $\gamma = 0.1$, thus prioritizing defect-proneness and the likelihood of unexpected behaviours and relegating propagation potential as secondary.
 
 ```{r all_paths}
 
@@ -192,18 +206,18 @@ plot_output <- plot_top_paths_fun(graph = synthetic_graph,
 
 ### Uncertainty and sensitivity analysis
 
-`softwareRisk` also enables the analyst to perform uncertainty and sensitivity analyses of risk score calculations by leveraging the sensobol package [@puy2022a]. By systematically varying the relative contribution of cyclomatic complexity and structural metrics such as in-degree and betweenness, the package allows users to evaluate how sensitive node- and path-level risk scores are to modelling assumptions. This approach makes it possible to assess the robustness of the identification of high-risk paths under alternative definitions of risk. 
+`softwareRisk` also enables the analyst to perform uncertainty and sensitivity analyses of risk and path score calculations by leveraging the sensobol package [@puy2022a]. By systematically varying the weights $(\alpha, \beta, \gamma)$ and the power parameter $p$, the package allows users to evaluate how sensitive node- and path-level risk scores are to different risk conceptualizations. This approach makes it possible to assess the robustness of the identification of high-risk paths under alternative definitions of risk.
 
-The relative weights assigned to cyclomatic complexity and structural metrics (in-degree and betweenness) are parameterized by the coefficients $\alpha$, $\beta$, and $\gamma$, which are randomly sampled and internally transformed into normalized weights ($\alpha_{\mathrm{raw}}$, $\beta_{\mathrm{raw}}$, and $\gamma_{\mathrm{raw}}$) that sum to one.
+Uncertainty and sensitivity analyses are implemented through the function `uncertainty_fun`. The user needs to define the order of the effects explored (`first`, `second` or `third`).
 
-Uncertainty and sensitivity analyses are implemented through the function `uncertainty_fun`:
+Internally, `uncertainty_fun` builds a Sobol' quasi-random design over four independent $U(0,1)$ draws. Three of them (`a_raw`, `b_raw`, `c_raw`) are normalised to sum to one, yielding the weights $\alpha$, $\beta$ and $\gamma$; the fourth (`p_raw`) is mapped linearly to $p \in [-1, 2]$. Independent uniform inputs are required by the quasi-random sequence, hence the need for the raw draws; the sensitivity indices, however, are attributed to the transformed parameters and labelled `alpha`, `beta`, `gamma` and `p` in the output, so the results are directly interpretable in terms of the model parameters.
 
 ```{r uncertainty}
 
 # Run uncertainty analysis -----------------------------------------------------
 
-uncertainty_analysis <- uncertainty_fun(all_paths_out = output, 
-                                        N = 2^10, 
+uncertainty_analysis <- uncertainty_fun(all_paths_out = output,
+                                        N = 2^10,
                                         order = "first")
 
 # Print the top five rows ------------------------------------------------------
@@ -213,17 +227,58 @@ lapply(uncertainty_analysis, function(x) head(x, 5))
 
 The output is a list with two slots:
 
-* `$nodes`: a `name` column with the name of the node, an `uncertainty_analysis` column with a list of all the node-level risk scores after randomizing $\alpha$, $\beta$ and $\gamma$, and a `sensitivity_analysis` column with a data.table informing of the results of the sensitivity analysis.
+* `$nodes`: a `name` column with the name of the node, an `uncertainty_analysis` column with a vector of $N$ node-level risk scores after randomizing $\alpha$, $\beta$, $\gamma$ and $p$, and a `sensitivity_analysis` column with the results of the sensitivity analysis. Each element of `sensitivity_analysis` is a `sensobol::sobol_indices()` object whose `$results` data frame reports first-order ($S_i$) and/or total-order ($T_i$) indices for the four parameters, labelled `alpha`, `beta`, `gamma` and `p`. See the `sensobol` package for further details [@puy2022a].
 
-* `$paths`: a `path_id` column with the ID number of the path, a `path_str` column informing on the sequence of functions calls for that path, a `hops` column informing on the number of edges traversed along the path, and an `uncertainty_analysis` with a vector of path-level risk scores after the uncertainty analysis. 
+* `$paths`: a `path_id` column with the ID number of the path, a `path_str` column informing on the sequence of functions calls for that path, a `hops` column informing on the number of edges traversed along the path and three columns informing on the results of the uncertainty analysis (UA): 
+  - `uncertainty_analysis`: vector of path-level risk scores after the UA.
+  - `gini_index`: vector of gini_index values after the UA.
+  - `risk_trend`: vector of risk_slope values after the UA.
 
-The `sensitivity_analysis` column can be unlisted and inspected as any other `data.table`. See the `sensobol` package for information on first-order ($S_i$) and total-order ($T_i$) indices [@puy2022a}].
-
-The analyst can also plot the top $n$ risky paths and their uncertainty with the function `path_uncertainty_plot`. The error bars encompass the minimum, mean and maximum $P_k$ value for that path.
+The analyst can also plot the top $n$ risky paths and their uncertainty with the function `path_uncertainty_plot`. The error bars encompass the minimum, mean and maximum $P_k$ value for that path after the uncertainty analysis.
 
 ```{r plot_uncert}
 
 path_uncertainty_plot(ua_sa_out = uncertainty_analysis, n_paths = 20)
+```
+
+### Extracting and plotting Sobol' indices
+
+The `sensitivity_analysis` list-column in `$nodes` stores one `sensobol::sobol_indices()` object per node. The Sobol' indices for a given node are accessible via the `$results` slot of that object, which is a data frame with three columns: `original` (the index value), `sensitivity` (`"Si"` for first-order, `"Ti"` for total-order), and `parameters` (`"alpha"`, `"beta"`, `"gamma"`, `"p"`).
+
+```{r sa_single_node}
+
+# Sobol' indices for the first node
+si_node1 <- uncertainty_analysis$nodes$sensitivity_analysis[[1]]$results
+si_node1
+```
+
+To compare parameter importance across all nodes, combine the per-node results into a single data frame:
+
+```{r sa_combine}
+
+sa_all <- do.call(rbind, Map(
+  function(sa, nm) data.frame(sa$results, name = nm, stringsAsFactors = FALSE),
+  uncertainty_analysis$nodes$sensitivity_analysis,
+  uncertainty_analysis$nodes$name
+))
+
+head(sa_all)
+```
+
+The resulting data frame can be used to visualize how much of the variance in node risk scores is explained by each parameter, and whether the dominant driver is consistent across nodes or varies. The plot below shows boxplots of $S_i$ and $T_i$ for each parameter across all nodes. A large gap between $S_i$ and $T_i$ for a parameter indicates important higher-order interactions with the other parameters.
+
+```{r sa_plot, fig.height=2.5, fig.width=4}
+
+library(ggplot2)
+
+ggplot(sa_all, aes(x = parameters, y = original, fill = sensitivity)) +
+  geom_boxplot(alpha = 0.7) +
+  scale_fill_manual(
+    values   = c(Si = "#F8766D", Ti = "#00BFC4"),
+    labels   = c(expression(S[i]), expression(T[i]))
+  ) +
+  labs(x = "Parameter", y = "Sobol\u2019 index", fill = "Index") +
+  theme_bw()
 ```
 
 ## References

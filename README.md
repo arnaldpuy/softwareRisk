@@ -31,14 +31,14 @@ devtools::install_github("arnaldpuy/softwareRisk", build_vignettes = TRUE)
 Please see the vignette for a walkthrough of the package utilities. 
 
 A printable PDF version of this 
-vignette is also available [here](https://github.com/arnaldpuy/softwareRisk/raw/main/inst/extdata/vignette-pdf/softwareRisk.pdf).
+vignette is also available [here](https://github.com/arnaldpuy/softwareRisk/raw/main/inst/extdata/vignette-pdf/softwareRisk_pdf.pdf).
 
 ## Citation 
 
 To cite `softwareRisk` in publications:
 
 Puy A (2025). _softwareRisk: Computation of node and path-level risk scores in scientific models_. R
-package version 0.1.0, <https://github.com/arnaldpuy/softwareRisk>.
+package version 0.1.1, <https://github.com/arnaldpuy/softwareRisk>.
 
 A BibTeX entry for LaTeX users is
 
@@ -46,7 +46,7 @@ A BibTeX entry for LaTeX users is
   title = {softwareRisk: Computation of node and path-level risk scores in scientific models},
   author = {Arnald Puy},
   year = {2025},
-  note = {R package version 0.1.0},
+  note = {R package version 0.1.1},
   url = {https://github.com/arnaldpuy/softwareRisk}
 }
 

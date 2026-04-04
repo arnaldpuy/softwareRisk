@@ -6,3 +6,8 @@
 ^CRAN-SUBMISSION$
 ^docs/.*\.pdf$
 ^inst/extdata/vignette-pdf/.*\.Rmd$
+^\.claude$
+^README_2\.md$
+^suggestions_refactoring\.md$
+^softwareRisk\.Rcheck$
+^softwareRisk_.*\.tar\.gz$

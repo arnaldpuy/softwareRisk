@@ -30,6 +30,8 @@
 #' path_uncertainty_plot(ua_sa_out = results, n_paths = 20)
 #' }
 #' @importFrom rlang .data
+#' @importFrom ggplot2 geom_errorbar geom_point
+#' @importFrom scales breaks_pretty
 #' @export
 path_uncertainty_plot <- function(ua_sa_out, n_paths = 20) {
 
@@ -66,36 +68,20 @@ path_uncertainty_plot <- function(ua_sa_out, n_paths = 20) {
 
   # ---- compute mean, min, max from uncertainty_analysis ----------------------
 
-  P_k_mean <- vapply(
+  summaries <- vapply(
     ua_col,
     function(x) {
       x_num <- as.numeric(x)
-      mean(x_num, na.rm = TRUE)
+      c(mean(x_num, na.rm = TRUE),
+        min(x_num, na.rm = TRUE),
+        max(x_num, na.rm = TRUE))
     },
-    numeric(1L)
+    numeric(3L)
   )
 
-  P_k_min <- vapply(
-    ua_col,
-    function(x) {
-      x_num <- as.numeric(x)
-      min(x_num, na.rm = TRUE)
-    },
-    numeric(1L)
-  )
-
-  P_k_max <- vapply(
-    ua_col,
-    function(x) {
-      x_num <- as.numeric(x)
-      max(x_num, na.rm = TRUE)
-    },
-    numeric(1L)
-  )
-
-  paths_tbl[["P_k_mean"]] <- P_k_mean
-  paths_tbl[["P_k_min"]]  <- P_k_min
-  paths_tbl[["P_k_max"]]  <- P_k_max
+  paths_tbl[["P_k_mean"]] <- summaries[1, ]
+  paths_tbl[["P_k_min"]]  <- summaries[2, ]
+  paths_tbl[["P_k_max"]]  <- summaries[3, ]
 
   # ---- select top paths by mean risk -----------------------------------------
 

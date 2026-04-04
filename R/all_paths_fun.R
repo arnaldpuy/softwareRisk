@@ -19,21 +19,14 @@
 #' The normalized node metrics are computed using `scales::rescale()` and denoted
 #' by a tilde \eqn{\tilde{\cdot}}.
 #'
-#' If `risk_form = "additive"`, the risk score for node \eqn{v_i} is computed as
-#'
-#' \deqn{r_{(v_i)} = \alpha\,\tilde{C}_{(v_i)} + \beta\, \tilde{d}_{(v_i)}^{\mathrm{in}} + \gamma\,\tilde{b}_{(v_i)}\,,}
-#'
-#' where the weights \eqn{\alpha}, \eqn{\beta} and \eqn{\gamma} reflect the relative
-#' importance of complexity, coupling and network position, with the constraint
-#' \eqn{\alpha + \beta + \gamma = 1}.
-#'
-#' If `risk_form = "power_mean"`, the risk score for node \eqn{v_i} is computed as
+#' The risk score for node \eqn{v_i} is computed as
 #' the weighted power mean of normalized metrics:
 #'
 #' \deqn{r_{(v_i)} =
 #' \left(\alpha\,\tilde{C}_{(v_i)}^{p} + \beta\,\tilde{d}_{(v_i)}^{\mathrm{in}\,p} + \gamma\,\tilde{b}_{(v_i)}^{p}\right)^{1/p}\,,}
 #'
-#' where \eqn{p} is the power-mean parameter. In the limit \eqn{p \to 0}, this reduces
+#' where \eqn{p} is the power-mean parameter. When \eqn{p = 1} this reduces to
+#' a weighted sum (additive). In the limit \eqn{p \to 0}, this reduces
 #' to a weighted geometric mean, implemented with a small constant \eqn{\epsilon} to
 #' ensure numerical stability:
 #'
@@ -70,10 +63,9 @@
 #'   attribute specified by `complexity_col`.
 #' @param alpha,beta,gamma Numeric non-negative weights for the risk score,
 #'   constrained such that `alpha + beta + gamma == 1` (within `weight_tol`).
-#' @param risk_form Character. Form used to combine normalized node metrics into a node risk score.
-#'   One of `"additive"` or `"power_mean"`. Default `"additive"`.
-#' @param p Numeric scalar. Power parameter used when `risk_form = "power_mean"`.
-#'   Must be finite and lie in the interval \eqn{[-1, 2]}. Default `1`.
+#' @param p Numeric scalar. Power parameter for the weighted power mean.
+#'   Must be finite and lie in the interval \eqn{[-1, 2]}. When \eqn{p = 1}
+#'   the formula reduces to a weighted sum. Default `1`.
 #' @param eps Numeric. Small positive constant \eqn{\epsilon} used for numerical stability in the
 #'   \eqn{p \to 0} (geometric mean) case. Default `1e-12`.
 #' @param complexity_col Character scalar. Name of the node attribute containing
@@ -82,9 +74,8 @@
 #'   Default `1e-8`.
 #'
 #' @details
-#' The returned `paths` tibble includes `path_cc`, a list-column giving the numeric
-#' vector of cyclomatic complexity values in the same order as `path_nodes` /
-#' `path_str`.
+#' The returned `paths` tibble includes `path_cc`, a list-column where each
+#' element is the vector of per-node cyclomatic complexity values along the path.
 #'
 #' @return A named list with two tibbles:
 #' \describe{
@@ -99,11 +90,11 @@
 #' # synthetic_graph is a tidygraph::tbl_graph with node attribute "cyclo"
 #' data(synthetic_graph)
 #'
-#' # additive risk (default)
+#' # additive risk (p = 1, default)
 #' out1 <- all_paths_fun(
 #'   graph = synthetic_graph,
 #'   alpha = 0.6, beta = 0.3, gamma = 0.1,
-#'   risk_form = "additive",
+#'   p = 1,
 #'   complexity_col = "cyclo"
 #' )
 #'
@@ -111,7 +102,6 @@
 #' out2 <- all_paths_fun(
 #'   graph = synthetic_graph,
 #'   alpha = 0.6, beta = 0.3, gamma = 0.1,
-#'   risk_form = "power_mean",
 #'   p = 0,
 #'   eps = 1e-12,
 #'   complexity_col = "cyclo"
@@ -133,25 +123,19 @@ all_paths_fun <- function(graph,
                           alpha = 0.6,
                           beta  = 0.3,
                           gamma = 0.1,
-                          risk_form = c("additive", "power_mean"),
                           p = 1,
                           eps = 1e-12,
                           complexity_col = "cyclo",
                           weight_tol = 1e-8) {
 
-  risk_form <- match.arg(risk_form)
-
   # ---- validate power-mean parameter ----------------------------------------
 
-  if (risk_form == "power_mean") {
-    if (!is.numeric(p) || length(p) != 1L || !is.finite(p)) {
-      stop("`p` must be a single finite numeric value.", call. = FALSE)
-    }
+  if (!is.numeric(p) || length(p) != 1L || !is.finite(p)) {
+    stop("`p` must be a single finite numeric value.", call. = FALSE)
+  }
 
-    if (p < -1 || p > 2) {
-      stop("For `risk_form = 'power_mean'`, `p` must lie in the interval [-1, 2].",
-           call. = FALSE)
-    }
+  if (p < -1 || p > 2) {
+    stop("`p` must lie in the interval [-1, 2].", call. = FALSE)
   }
 
   # ---- validate graph --------------------------------------------------------
@@ -213,31 +197,21 @@ all_paths_fun <- function(graph,
   indeg_n <- scales::rescale(indeg)
   btw_n   <- scales::rescale(btw)
 
-  # ---- node risk score: additive vs power mean -------------------------------
+  # ---- node risk score: weighted power mean ----------------------------------
 
-  if (risk_form == "additive") {
-
-    risk_score <- alpha * cc_n + beta * indeg_n + gamma * btw_n
-
-  } else if (risk_form == "power_mean") {
-
-    if (!is.finite(p)) stop("`p` must be finite for `risk_form = 'power_mean'`.", call. = FALSE)
-
-    if (abs(p) < 1e-12) {
-      # weighted geometric mean (p -> 0), with eps to avoid log(0)
-      risk_score <- exp(
-        alpha * log(pmax(cc_n, eps)) +
-          beta  * log(pmax(indeg_n, eps)) +
-          gamma * log(pmax(btw_n, eps))
-      )
-    } else {
-      risk_score <- (alpha * (cc_n^p) + beta * (indeg_n^p) + gamma * (btw_n^p))^(1 / p)
-    }
-
-    # numerical safety: keep in [0,1]
-    risk_score <- pmin(1, pmax(0, risk_score))
-
+  if (abs(p) < 1e-12) {
+    # weighted geometric mean (p -> 0), with eps to avoid log(0)
+    risk_score <- exp(
+      alpha * log(pmax(cc_n, eps)) +
+        beta  * log(pmax(indeg_n, eps)) +
+        gamma * log(pmax(btw_n, eps))
+    )
+  } else {
+    risk_score <- (alpha * (cc_n^p) + beta * (indeg_n^p) + gamma * (btw_n^p))^(1 / p)
   }
+
+  # numerical safety: keep in [0,1]
+  risk_score <- pmin(1, pmax(0, risk_score))
 
   nodes_tbl <- tibble::tibble(
     name = v_names_all,
@@ -331,12 +305,3 @@ all_paths_fun <- function(graph,
     paths = paths_tbl
   )
 }
-
-
-
-
-
-
-
-
-

@@ -28,7 +28,7 @@ from \code{graph} where possible.}
 
 \item{top_n}{Integer. Number of highest-risk paths to display (default 10).}
 
-\item{alpha_non_top}{Numeric in \deqn{[0, 1]}. Alpha (transparency) for edges that are
+\item{alpha_non_top}{Numeric between 0 and 1. Alpha (transparency) for edges that are
 not on the top-risk paths. Smaller values fade background edges more.}
 }
 \value{

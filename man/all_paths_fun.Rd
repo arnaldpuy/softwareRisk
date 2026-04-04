@@ -9,7 +9,6 @@ all_paths_fun(
   alpha = 0.6,
   beta = 0.3,
   gamma = 0.1,
-  risk_form = c("additive", "power_mean"),
   p = 1,
   eps = 1e-12,
   complexity_col = "cyclo",
@@ -24,11 +23,9 @@ attribute specified by \code{complexity_col}.}
 \item{alpha, beta, gamma}{Numeric non-negative weights for the risk score,
 constrained such that \code{alpha + beta + gamma == 1} (within \code{weight_tol}).}
 
-\item{risk_form}{Character. Form used to combine normalized node metrics into a node risk score.
-One of \code{"additive"} or \code{"power_mean"}. Default \code{"additive"}.}
-
-\item{p}{Numeric scalar. Power parameter used when \code{risk_form = "power_mean"}.
-Must be finite and lie in the interval \eqn{[-1, 2]}. Default \code{1}.}
+\item{p}{Numeric scalar. Power parameter for the weighted power mean.
+Must be finite and lie in the interval \eqn{[-1, 2]}. When \eqn{p = 1}
+the formula reduces to a weighted sum. Default \code{1}.}
 
 \item{eps}{Numeric. Small positive constant \eqn{\epsilon} used for numerical stability in the
 \eqn{p \to 0} (geometric mean) case. Default \code{1e-12}.}
@@ -65,21 +62,14 @@ nodes (out-degree = 0),
 The normalized node metrics are computed using \code{scales::rescale()} and denoted
 by a tilde \eqn{\tilde{\cdot}}.
 
-If \code{risk_form = "additive"}, the risk score for node \eqn{v_i} is computed as
-
-\deqn{r_{(v_i)} = \alpha\,\tilde{C}_{(v_i)} + \beta\, \tilde{d}_{(v_i)}^{\mathrm{in}} + \gamma\,\tilde{b}_{(v_i)}\,,}
-
-where the weights \eqn{\alpha}, \eqn{\beta} and \eqn{\gamma} reflect the relative
-importance of complexity, coupling and network position, with the constraint
-\eqn{\alpha + \beta + \gamma = 1}.
-
-If \code{risk_form = "power_mean"}, the risk score for node \eqn{v_i} is computed as
+The risk score for node \eqn{v_i} is computed as
 the weighted power mean of normalized metrics:
 
 \deqn{r_{(v_i)} =
 \left(\alpha\,\tilde{C}_{(v_i)}^{p} + \beta\,\tilde{d}_{(v_i)}^{\mathrm{in}\,p} + \gamma\,\tilde{b}_{(v_i)}^{p}\right)^{1/p}\,,}
 
-where \eqn{p} is the power-mean parameter. In the limit \eqn{p \to 0}, this reduces
+where \eqn{p} is the power-mean parameter. When \eqn{p = 1} this reduces to
+a weighted sum (additive). In the limit \eqn{p \to 0}, this reduces
 to a weighted geometric mean, implemented with a small constant \eqn{\epsilon} to
 ensure numerical stability:
 
@@ -111,19 +101,18 @@ Finally, the trend of risk is defined by the slope of the regression
 where \eqn{r_{k(v_i)}} is the risk score of the function at position \eqn{i} along
 path \eqn{k} (ordered from upstream to downstream execution) and \eqn{\epsilon_i} is a residual term.
 
-The returned \code{paths} tibble includes \code{path_cc}, a list-column giving the numeric
-vector of cyclomatic complexity values in the same order as \code{path_nodes} /
-\code{path_str}.
+The returned \code{paths} tibble includes \code{path_cc}, a list-column where each
+element is the vector of per-node cyclomatic complexity values along the path.
 }
 \examples{
 # synthetic_graph is a tidygraph::tbl_graph with node attribute "cyclo"
 data(synthetic_graph)
 
-# additive risk (default)
+# additive risk (p = 1, default)
 out1 <- all_paths_fun(
   graph = synthetic_graph,
   alpha = 0.6, beta = 0.3, gamma = 0.1,
-  risk_form = "additive",
+  p = 1,
   complexity_col = "cyclo"
 )
 
@@ -131,7 +120,6 @@ out1 <- all_paths_fun(
 out2 <- all_paths_fun(
   graph = synthetic_graph,
   alpha = 0.6, beta = 0.3, gamma = 0.1,
-  risk_form = "power_mean",
   p = 0,
   eps = 1e-12,
   complexity_col = "cyclo"
