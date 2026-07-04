@@ -4,6 +4,6 @@ bibentry(
   bibtype = "Manual",
   title = "softwareRisk: Computation of Node and Path-Level Risk Scores in Scientific Models",
   author = person("Arnald", "Puy"),
-  year = "2025",
-  note = "R package version 0.2.0"
+  year = "2026",
+  note = "R package version 0.2.2"
 )

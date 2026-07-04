@@ -11,9 +11,7 @@
 #' @param graph A directed `tidygraph::tbl_graph` representing the call graph to
 #'   plot (typically the same graph used as input to [all_paths_fun()]).
 #' @param all_paths_out Output from [all_paths_fun()], i.e. a list
-#'   with elements `nodes` and `paths`. For backward compatibility, a `paths`
-#'   tibble can also be supplied directly; in that case node metrics are derived
-#'   from `graph` where possible.
+#'   with elements `nodes` and `paths`.
 #' @param model.name Character scalar used in the plot title (e.g., model name).
 #' @param language Character scalar used in the plot title (e.g., language name).
 #' @param top_n Integer. Number of highest-risk paths to display (default 10).
@@ -34,8 +32,6 @@
 #' Node fills are based on `cyclomatic_complexity` using breaks
 #' `(-Inf, 10]`, `(10, 20]`, `(20, 50]`, `(50, Inf]` as per Watson & McCabe (1996).
 #'
-#' This function relies on external theming/label objects `theme_AP()` and
-#' `lab_expr` being available in the calling environment or package namespace.
 #'
 #' @references
 #' Watson, A. H. and McCabe, T. J. (1996).
@@ -74,10 +70,8 @@ plot_top_paths_fun <- function(graph,
                                alpha_non_top = 0.05) {
 
   # ---- Accept outputs from all_paths_fun() -----------------------------------
-  # all_paths_out can be:
-  #   (1) list(nodes = <tibble>, paths = <tibble>)  [recommended]
-  #   (2) a paths tibble (back-compat)
-  #   (3) explicit list(paths_tbl=..., nodes_tbl=...) (tolerated)
+  # all_paths_out must be a list with $nodes and $paths
+  # (list(paths_tbl = ..., nodes_tbl = ...) is tolerated)
 
   if (is.list(all_paths_out) && !is.data.frame(all_paths_out)) {
 
@@ -85,9 +79,9 @@ plot_top_paths_fun <- function(graph,
     paths_tbl <- all_paths_out$paths %||% all_paths_out$paths_tbl
 
   } else {
-
-    nodes_tbl <- NULL
-    paths_tbl <- all_paths_out
+    stop("`all_paths_out` must be the output of all_paths_fun() ",
+         "(a list with $nodes and $paths).",
+         call. = FALSE)
   }
 
   if (is.null(paths_tbl) || !is.data.frame(paths_tbl) || nrow(paths_tbl) == 0) {
@@ -241,11 +235,12 @@ plot_top_paths_fun <- function(graph,
     ) +
     ggplot2::scale_size_continuous(breaks = legend_breaks, labels = legend_labels, name = "indegree") +
     ggplot2::scale_fill_manual(
-      values = c("yellowgreen", "orange", "red", "purple"),
+      values = c(b1 = "yellowgreen", b2 = "orange", b3 = "red", b4 = "purple"),
       labels =  c(b1 = expression(C %in% "(" * 0 * ", 10" * "]"),
                   b2 = expression(C %in% "(" * 10 * ", 20" * "]"),
                   b3 = expression(C %in% "(" * 20 * ", 50" * "]"),
                   b4 = expression(C %in% "(" * 50 * ", " * infinity * ")")),
+      drop = FALSE,
       name = ""
     ) +
     theme_AP() +

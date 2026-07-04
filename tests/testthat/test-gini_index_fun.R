@@ -15,3 +15,7 @@ test_that("gini_index_fun removes non-finite values", {
   g <- gini_index_fun(c(NA, 1, 2, Inf, 3))
   expect_true(is.numeric(g) && length(g) == 1)
 })
+
+test_that("gini_index_fun returns 0 (not NaN) for all-zero input", {
+  expect_equal(gini_index_fun(c(0, 0, 0)), 0)
+})

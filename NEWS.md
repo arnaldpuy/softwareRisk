@@ -1,3 +1,57 @@
+# softwareRisk 0.2.2
+
+## Bug fixes
+
+- Fixed silent `NaN` risk scores in `all_paths_fun()` and `uncertainty_fun()`
+  when a weight is `0` and `p < 0`: zero-valued normalized metrics produced
+  `0 * Inf = NaN`, which was then silently dropped from path-level aggregation
+  via `na.rm = TRUE`. Zero-valued metrics are now replaced by `eps` before the
+  power mean is evaluated when `p < 0`, matching the guard already used in the
+  `p -> 0` (geometric mean) case.
+- `gini_index_fun()` now returns `0` instead of `NaN` for all-zero input
+  (`ineq::Gini()` divides by the mean). This also removes spurious `NaN` draws
+  in the `gini_index` column returned by `uncertainty_fun()`, which occurred
+  whenever a Sobol' draw pushed every node risk on a path to zero.
+- `uncertainty_fun()` no longer errors when `all_paths_out$paths` is empty
+  (the documented output of `all_paths_fun()` for graphs with no entry-to-sink
+  paths). Node-level results are computed and an empty paths tibble with the
+  usual columns is returned.
+- `slope_fun()` now regresses the finite values against their original
+  positions instead of a compressed index, so removing non-finite values no
+  longer biases the estimated trend (e.g., `slope_fun(c(1, NA, 3))` now
+  returns `1` instead of `2`).
+- Fixed `geom_errorbar(height = ...)` in `path_uncertainty_plot()`: the
+  argument is now `width`, removing the deprecation warning issued by
+  ggplot2 (`height` was translated to `width`).
+- Removed the documented but non-functional backward-compatibility input of
+  `plot_top_paths_fun()`: supplying a bare `paths` tibble always failed with a
+  misleading error because the fallback deriving node metrics from `graph` was
+  never implemented. The function now clearly requires the full output of
+  `all_paths_fun()`, and the documentation has been updated accordingly.
+
+## Improvements
+
+- Replaced the superseded `purrr::flatten()` with `unlist(recursive = FALSE)`
+  in `all_paths_fun()`.
+- Replaced the deprecated `trans` argument with `transform` in
+  `scale_fill_viridis_c()` within `path_fix_heatmap()`; ggplot2 (>= 3.5.0) is
+  now required.
+- Removed the unused `params` argument of the internal `risk_ua_sa_fun()`.
+- Removed a stale reference to `lab_expr` in the documentation of
+  `plot_top_paths_fun()`.
+- Updated the citation entries in `README.md` and `inst/CITATION` to the
+  current version.
+- Added regression tests for all fixes above.
+
+# softwareRisk 0.2.1
+
+## Bug fixes
+
+- Fixed `scale_fill_manual()` in `plot_top_paths_fun()`: values are now named
+  (`b1`–`b4`) to guarantee correct colour-to-category mapping, and `drop = FALSE`
+  ensures all four complexity categories always appear in the legend even when
+  some are absent from the plotted nodes.
+
 # softwareRisk 0.2.0
 
 ## Breaking changes

@@ -175,7 +175,7 @@ path_fix_heatmap <- function(all_paths_out, n_nodes = 20, k_paths = 20) {
     ggplot2::scale_fill_viridis_c(
       option = "C",
       name   = expression(Delta * P[k]),
-      trans  = "sqrt"
+      transform = "sqrt"
     ) +
     theme_AP() +
     ggplot2::theme(

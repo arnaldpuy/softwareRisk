@@ -15,8 +15,9 @@ A numeric scalar giving the slope of the fitted linear trend.
 \description{
 Computes the slope of a simple linear regression of a numeric vector
 against its index (\code{seq_along(x)}). Non-finite (\code{NA}, \code{NaN}, \code{Inf}) values
-are removed prior to computation. If fewer than two finite values remain,
-the function returns \code{0}.
+are removed prior to computation, but the remaining values keep their
+original positions as the regressor, so removing values does not distort
+the trend. If fewer than two finite values remain, the function returns \code{0}.
 }
 \details{
 The slope is estimated from the model

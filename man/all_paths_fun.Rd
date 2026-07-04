@@ -28,7 +28,9 @@ Must be finite and lie in the interval \eqn{[-1, 2]}. When \eqn{p = 1}
 the formula reduces to a weighted sum. Default \code{1}.}
 
 \item{eps}{Numeric. Small positive constant \eqn{\epsilon} used for numerical stability in the
-\eqn{p \to 0} (geometric mean) case. Default \code{1e-12}.}
+\eqn{p \to 0} (geometric mean) case and when \eqn{p < 0}, where zero-valued
+normalized metrics are replaced by \eqn{\epsilon} to avoid non-finite
+intermediate values. Default \code{1e-12}.}
 
 \item{complexity_col}{Character scalar. Name of the node attribute containing
 cyclomatic complexity. Default \code{"cyclo"}.}

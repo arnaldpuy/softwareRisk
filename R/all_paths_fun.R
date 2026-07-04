@@ -67,7 +67,9 @@
 #'   Must be finite and lie in the interval \eqn{[-1, 2]}. When \eqn{p = 1}
 #'   the formula reduces to a weighted sum. Default `1`.
 #' @param eps Numeric. Small positive constant \eqn{\epsilon} used for numerical stability in the
-#'   \eqn{p \to 0} (geometric mean) case. Default `1e-12`.
+#'   \eqn{p \to 0} (geometric mean) case and when \eqn{p < 0}, where zero-valued
+#'   normalized metrics are replaced by \eqn{\epsilon} to avoid non-finite
+#'   intermediate values. Default `1e-12`.
 #' @param complexity_col Character scalar. Name of the node attribute containing
 #'   cyclomatic complexity. Default `"cyclo"`.
 #' @param weight_tol Numeric tolerance for enforcing the weight-sum constraint.
@@ -115,7 +117,7 @@
 #' @importFrom tidygraph as.igraph
 #' @importFrom igraph V degree betweenness distances all_simple_paths vertex_attr vertex_attr_names
 #' @importFrom tibble tibble
-#' @importFrom purrr flatten map_dfr
+#' @importFrom purrr map_dfr
 #' @importFrom scales rescale
 #'
 
@@ -206,6 +208,11 @@ all_paths_fun <- function(graph,
         beta  * log(pmax(indeg_n, eps)) +
         gamma * log(pmax(btw_n, eps))
     )
+  } else if (p < 0) {
+    # eps guard avoids 0^p = Inf, which yields NaN (0 * Inf) when a weight is 0
+    risk_score <- (alpha * (pmax(cc_n, eps)^p) +
+                     beta  * (pmax(indeg_n, eps)^p) +
+                     gamma * (pmax(btw_n, eps)^p))^(1 / p)
   } else {
     risk_score <- (alpha * (cc_n^p) + beta * (indeg_n^p) + gamma * (btw_n^p))^(1 / p)
   }
@@ -265,7 +272,7 @@ all_paths_fun <- function(graph,
     )
   })
 
-  all_paths <- purrr::flatten(all_paths_nested)
+  all_paths <- unlist(all_paths_nested, recursive = FALSE)
   if (length(all_paths) == 0) {
     return(list(nodes = nodes_tbl, paths = tibble::tibble()))
   }

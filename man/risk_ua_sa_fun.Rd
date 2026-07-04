@@ -10,7 +10,6 @@ risk_ua_sa_fun(
   btw_sc,
   sample_matrix,
   N,
-  params,
   params_labels,
   order,
   eps = 1e-12

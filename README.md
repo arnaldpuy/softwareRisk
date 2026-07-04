@@ -37,16 +37,16 @@ vignette is also available [here](https://github.com/arnaldpuy/softwareRisk/raw/
 
 To cite `softwareRisk` in publications:
 
-Puy A (2025). _softwareRisk: Computation of node and path-level risk scores in scientific models_. R
-package version 0.1.1, <https://github.com/arnaldpuy/softwareRisk>.
+Puy A (2026). _softwareRisk: Computation of node and path-level risk scores in scientific models_. R
+package version 0.2.2, <https://github.com/arnaldpuy/softwareRisk>.
 
 A BibTeX entry for LaTeX users is
 
-@Manual{puy2025_softwareRisk,
+@Manual{puy2026_softwareRisk,
   title = {softwareRisk: Computation of node and path-level risk scores in scientific models},
   author = {Arnald Puy},
-  year = {2025},
-  note = {R package version 0.1.1},
+  year = {2026},
+  note = {R package version 0.2.2},
   url = {https://github.com/arnaldpuy/softwareRisk}
 }
 

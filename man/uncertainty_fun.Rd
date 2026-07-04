@@ -17,13 +17,17 @@ uncertainty_fun(all_paths_out, N, order, eps = 1e-12)
 which Sobol indices are computed (e.g., first/total/second order), depending on your implementation.}
 
 \item{eps}{Numeric. Small positive constant \eqn{\epsilon} used for numerical stability
-in the \eqn{p \to 0} evaluation. Default \code{1e-12}.}
+in the \eqn{p \to 0} evaluation and when \eqn{p < 0}, where zero-valued
+rescaled metrics are replaced by \eqn{\epsilon} to avoid non-finite
+intermediate values. Default \code{1e-12}.}
 }
 \value{
 A named list with:
 \describe{
 \item{nodes}{A tibble of node results.}
-\item{paths}{A tibble of path results.}
+\item{paths}{A tibble of path results. If \code{all_paths_out$paths} is empty
+(e.g., the graph has no entry-to-sink paths), an empty tibble with the
+same columns is returned.}
 }
 }
 \description{

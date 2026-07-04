@@ -29,7 +29,7 @@
 #'
 #' @keywords internal
 risk_ua_sa_fun <- function(cyclo_sc, indeg_sc, btw_sc,
-                           sample_matrix, N, params, params_labels, order,
+                           sample_matrix, N, params_labels, order,
                            eps = 1e-12) {
 
   if (!is.numeric(eps) || length(eps) != 1L || !is.finite(eps) || eps <= 0) {
@@ -57,12 +57,21 @@ risk_ua_sa_fun <- function(cyclo_sc, indeg_sc, btw_sc,
     )
   }
 
-  # Standard power mean for p != 0
-  idx1 <- !idx0
-  if (any(idx1)) {
-    y[idx1] <- (a[idx1] * (cyclo_sc^p[idx1]) +
-                  b[idx1] * (indeg_sc^p[idx1]) +
-                  g[idx1] * (btw_sc^p[idx1]))^(1 / p[idx1])
+  # Power mean for p < 0: eps guard avoids 0^p = Inf, which yields NaN
+  # (0 * Inf) when a weight is 0
+  idx_neg <- !idx0 & p < 0
+  if (any(idx_neg)) {
+    y[idx_neg] <- (a[idx_neg] * (pmax(cyclo_sc, eps)^p[idx_neg]) +
+                     b[idx_neg] * (pmax(indeg_sc, eps)^p[idx_neg]) +
+                     g[idx_neg] * (pmax(btw_sc, eps)^p[idx_neg]))^(1 / p[idx_neg])
+  }
+
+  # Standard power mean for p > 0
+  idx_pos <- !idx0 & p > 0
+  if (any(idx_pos)) {
+    y[idx_pos] <- (a[idx_pos] * (cyclo_sc^p[idx_pos]) +
+                     b[idx_pos] * (indeg_sc^p[idx_pos]) +
+                     g[idx_pos] * (btw_sc^p[idx_pos]))^(1 / p[idx_pos])
   }
 
   # numerical safety: keep in [0,1] (inputs are scaled, so this is appropriate)
@@ -122,7 +131,9 @@ risk_ua_sa_fun <- function(cyclo_sc, indeg_sc, btw_sc,
 #' @param order Passed to `sensobol::sobol_matrices()` and `sensobol::sobol_indices()` to control
 #'   which Sobol indices are computed (e.g., first/total/second order), depending on your implementation.
 #' @param eps Numeric. Small positive constant \eqn{\epsilon} used for numerical stability
-#'   in the \eqn{p \to 0} evaluation. Default `1e-12`.
+#'   in the \eqn{p \to 0} evaluation and when \eqn{p < 0}, where zero-valued
+#'   rescaled metrics are replaced by \eqn{\epsilon} to avoid non-finite
+#'   intermediate values. Default `1e-12`.
 #'
 #' @details
 #' For more information about the uncertainty and sensitivity analysis and the output of
@@ -159,7 +170,9 @@ risk_ua_sa_fun <- function(cyclo_sc, indeg_sc, btw_sc,
 #' @return A named list with:
 #' \describe{
 #'   \item{nodes}{A tibble of node results.}
-#'   \item{paths}{A tibble of path results.}
+#'   \item{paths}{A tibble of path results. If `all_paths_out$paths` is empty
+#'     (e.g., the graph has no entry-to-sink paths), an empty tibble with the
+#'     same columns is returned.}
 #' }
 #'
 #' @examples
@@ -188,12 +201,18 @@ uncertainty_fun <- function(all_paths_out, N, order, eps = 1e-12) {
   nodes_tbl <- all_paths_out$nodes
   paths_tbl <- all_paths_out$paths
 
-  required_paths <- c("path_id", "path_nodes", "path_str", "hops")
-  missing_paths <- setdiff(required_paths, names(paths_tbl))
-  if (length(missing_paths) > 0) {
-    stop("`all_paths_out$paths` is missing required columns: ",
-         paste(missing_paths, collapse = ", "),
-         call. = FALSE)
+  # all_paths_fun() returns an empty paths tibble when the graph has no
+  # entry-to-sink paths; in that case only node-level results are computed
+  has_paths <- nrow(paths_tbl) > 0L
+
+  if (has_paths) {
+    required_paths <- c("path_id", "path_nodes", "path_str", "hops")
+    missing_paths <- setdiff(required_paths, names(paths_tbl))
+    if (length(missing_paths) > 0) {
+      stop("`all_paths_out$paths` is missing required columns: ",
+           paste(missing_paths, collapse = ", "),
+           call. = FALSE)
+    }
   }
 
   # ---- rescale node metrics to [0,1] -----------------------------------------
@@ -235,7 +254,6 @@ uncertainty_fun <- function(all_paths_out, N, order, eps = 1e-12) {
       btw_sc   = btw_sc[i],
       sample_matrix = mat,
       N = N,
-      params = params_raw,
       params_labels = params_labels,
       order = order,
       eps = eps
@@ -298,14 +316,25 @@ uncertainty_fun <- function(all_paths_out, N, order, eps = 1e-12) {
     sensitivity_analysis = sa_list
   )
 
-  paths_out <- tibble::tibble(
-    path_id = paths_tbl[["path_id"]],
-    path_str = paths_tbl[["path_str"]],
-    hops = paths_tbl[["hops"]],
-    uncertainty_analysis = P_k,
-    gini_index = gini_list,
-    risk_trend = trend_list
-  )
+  paths_out <- if (has_paths) {
+    tibble::tibble(
+      path_id = paths_tbl[["path_id"]],
+      path_str = paths_tbl[["path_str"]],
+      hops = paths_tbl[["hops"]],
+      uncertainty_analysis = P_k,
+      gini_index = gini_list,
+      risk_trend = trend_list
+    )
+  } else {
+    tibble::tibble(
+      path_id = integer(0),
+      path_str = character(0),
+      hops = integer(0),
+      uncertainty_analysis = list(),
+      gini_index = list(),
+      risk_trend = list()
+    )
+  }
 
   list(nodes = node_out, paths = paths_out)
 }

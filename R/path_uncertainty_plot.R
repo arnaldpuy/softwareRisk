@@ -108,7 +108,7 @@ path_uncertainty_plot <- function(ua_sa_out, n_paths = 20) {
         xmin = .data$P_k_min,
         xmax = .data$P_k_max
       ),
-      height = 0.2
+      width = 0.2
     ) +
     ggplot2::geom_point(size = 1) +
     ggplot2::labs(

@@ -18,9 +18,7 @@ plot_top_paths_fun(
 plot (typically the same graph used as input to \code{\link[=all_paths_fun]{all_paths_fun()}}).}
 
 \item{all_paths_out}{Output from \code{\link[=all_paths_fun]{all_paths_fun()}}, i.e. a list
-with elements \code{nodes} and \code{paths}. For backward compatibility, a \code{paths}
-tibble can also be supplied directly; in that case node metrics are derived
-from \code{graph} where possible.}
+with elements \code{nodes} and \code{paths}.}
 
 \item{model.name}{Character scalar used in the plot title (e.g., model name).}
 
@@ -56,9 +54,6 @@ include each edge),
 
 Node fills are based on \code{cyclomatic_complexity} using breaks
 \verb{(-Inf, 10]}, \verb{(10, 20]}, \verb{(20, 50]}, \verb{(50, Inf]} as per Watson & McCabe (1996).
-
-This function relies on external theming/label objects \code{theme_AP()} and
-\code{lab_expr} being available in the calling environment or package namespace.
 }
 \examples{
 data(synthetic_graph)

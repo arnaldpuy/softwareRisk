@@ -45,3 +45,33 @@ test_that("uncertainty_fun returns expected structure", {
   expect_true(all(is.finite(si_vals)))
   expect_true(all(si_vals >= -0.1 & si_vals <= 1.1))
 })
+
+test_that("uncertainty_fun produces no NaN draws in UA, gini or trend columns", {
+  data(synthetic_graph)
+  out <- all_paths_fun(synthetic_graph, p = 1)
+  results <- uncertainty_fun(all_paths_out = out, N = 2^6, order = "first")
+
+  expect_true(all(is.finite(unlist(results$nodes$uncertainty_analysis))))
+  expect_true(all(is.finite(unlist(results$paths$uncertainty_analysis))))
+  # regression test: draws pushing all node risks on a path to 0 gave NaN gini
+  expect_true(all(is.finite(unlist(results$paths$gini_index))))
+  expect_true(all(is.finite(unlist(results$paths$risk_trend))))
+})
+
+test_that("uncertainty_fun handles an empty paths tibble from all_paths_fun", {
+  # a two-node cycle has no entry or sink nodes, so all_paths_fun()
+  # returns an empty paths tibble
+  g <- tidygraph::tbl_graph(
+    nodes = data.frame(name = c("a", "b"), cyclo = c(1, 2)),
+    edges = data.frame(from = c(1, 2), to = c(2, 1)),
+    directed = TRUE
+  )
+  out <- all_paths_fun(g, p = 1)
+  expect_equal(nrow(out$paths), 0L)
+
+  results <- uncertainty_fun(all_paths_out = out, N = 2^2, order = "first")
+  expect_equal(nrow(results$nodes), 2L)
+  expect_equal(nrow(results$paths), 0L)
+  expect_true(all(c("path_id", "path_str", "hops", "uncertainty_analysis",
+                    "gini_index", "risk_trend") %in% names(results$paths)))
+})

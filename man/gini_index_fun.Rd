@@ -15,7 +15,8 @@ A numeric scalar giving the Gini index of \code{x}.
 \description{
 Computes the Gini index (a measure of inequality) for a numeric vector.
 Non-finite (\code{NA}, \code{NaN}, \code{Inf}) values are removed prior to computation.
-If fewer than two finite values remain, the function returns \code{0}.
+If fewer than two finite values remain, or if all finite values are zero
+(no inequality is measurable), the function returns \code{0}.
 }
 \details{
 The Gini index ranges from 0 (perfect equality) to 1 (maximal inequality).

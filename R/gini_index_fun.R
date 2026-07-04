@@ -7,7 +7,8 @@
 #'
 #' Computes the Gini index (a measure of inequality) for a numeric vector.
 #' Non-finite (`NA`, `NaN`, `Inf`) values are removed prior to computation.
-#' If fewer than two finite values remain, the function returns `0`.
+#' If fewer than two finite values remain, or if all finite values are zero
+#' (no inequality is measurable), the function returns `0`.
 #'
 #' @param x Numeric vector.
 #'
@@ -28,6 +29,9 @@ gini_index_fun <- function(x) {
 
   x <- x[is.finite(x)]
   if (length(x) <= 1) return(0)
+
+  # ineq::Gini() divides by the mean, so an all-zero vector yields NaN
+  if (sum(x) == 0) return(0)
 
   ineq::Gini(x)
 }
