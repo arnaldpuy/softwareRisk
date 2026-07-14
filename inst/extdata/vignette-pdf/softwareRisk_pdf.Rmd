@@ -43,11 +43,11 @@ directed edge $e_{ij} = (v_i, v_j) \in E$ is a function call. It also assumes th
 each function will have a cyclomatic complexity value. Therefore the analyst should have two 
 different datasets before starting the analysis:
 
-1. A spreadsheet listing the set set of directed edges as an edge list, with one row per
-function call. The first column may contian the caller function (source node, $v_i$, "from") and the
-second column the calle function (target node, $v_j$, "to"): 
+1. A spreadsheet listing the set of directed edges as an edge list, with one row per
+function call. The first column may contain the caller function (source node, $v_i$, "from") and the
+second column the callee function (target node, $v_j$, "to"):
 
-2. A spreadsheet listing the cyclomatic_complexity values for each function in the model.
+2. A spreadsheet listing the cyclomatic complexity values for each function in the model.
 
 Let us create these datasets to illustrate their format:
 
@@ -83,11 +83,67 @@ graph <- tbl_graph(nodes = cyclo_df, edges = calls_df, directed = TRUE)
 graph
 ```
 
+The function `read_call_graph` performs this merge while validating the input, so that
+common preparation errors (misspelled columns, functions present in the edge list but
+missing from the complexity table, duplicated names, non-numeric complexity values)
+fail early with an informative message. It accepts data frames or paths to `.csv`
+files and is the recommended entry point for models written in languages other than
+`R` (e.g., Fortran, C, Python), whose edge lists and complexity values are extracted
+with external tools:
+
+```{r read_call_graph}
+
+# Merge and validate with read_call_graph ---------------------------------------
+
+graph <- read_call_graph(edges = calls_df, metrics = cyclo_df)
+
+graph
+```
+
+## Building the call graph automatically from R code
+
+For models written in `R`, no manual preparation is needed: the function
+`call_graph_fun` builds the call graph directly from the source code. It collects the
+functions defined in an installed package (`pkg` argument) or in a directory of `.R`
+scripts (`dir` argument), detects the calls among them by static analysis
+(`codetools::findGlobals`), and computes the cyclomatic complexity of each function by
+walking its abstract syntax tree, following @mccabe1976. The code is never executed. To
+illustrate, we write a small model to a temporary directory and build its graph:
+
+```{r call_graph_auto}
+
+# Write a small R model to a temporary directory ---------------------------------
+
+td <- file.path(tempdir(), "toy_model")
+dir.create(td, showWarnings = FALSE)
+
+writeLines(c(
+  "load_data <- function(x) x",
+  "clean_data <- function(x) load_data(x)",
+  "calc_scores <- function(x) if (length(x) > 0) mean(x) else 0",
+  "compute_risk <- function(x) calc_scores(clean_data(x))",
+  "plot_results <- function(x) compute_risk(x)"
+), file.path(td, "model.R"))
+
+# Build the call graph -----------------------------------------------------------
+
+auto_graph <- call_graph_fun(dir = td)
+
+auto_graph
+```
+
+The resulting `tbl_graph` carries the `cyclo` node attribute and feeds directly into
+the pipeline described below. The same works for any installed package, e.g.,
+`call_graph_fun(pkg = "softwareRisk")` analyzes `softwareRisk` itself. Two limitations
+of static analysis are worth keeping in mind: calls built at run time (e.g., through
+`do.call` with a constructed name, `get`, or method dispatch) cannot be detected, and
+a function passed as a value (e.g., to `lapply`) is treated as called.
+
 Once this is done, the data is prepared for `softwareRisk`.
 
 ## Analysis
 
-Here we illustrate the functions of `softwareRisk` by using the build-in data
+Here we illustrate the functions of `softwareRisk` by using the built-in data
 `synthetic_graph`. It consists of five entry nodes, 35 middle nodes and
 15 sink nodes. Each entry node calls between two and five middle nodes and each
 middle node calls one to three sink nodes, thus simulating realistic code architecture. 
@@ -127,19 +183,7 @@ r^{(p)}_{(v_i)} =
 
 where the tilde $\tilde{}$ refers to normalization, $C$ denotes cyclomatic complexity, $d^{\text{in}}$ refers
 to in-degree and $b$ denotes betweenness. The weights $\alpha$, $\beta$ and $\gamma$ reflect the relative importance of complexity, coupling and network position and can be defined by the analyst, with the
-constraint that $\alpha+\beta+\gamma =1$. High $r$ values indicate functions that are complex and/or highly interconnected and hence potential points of structural vulnerability. Table 1 summarises the interpretation of each parameter.
-
-| Parameter | Attribute | Risk type | Definition of risk | Intuition |
-|---|---|---|---|---|
-| $\alpha$ | Cyclomatic complexity | Complexity-driven | Risk arises from internal complexity | Hard-to-read functions are more error-prone |
-| $\beta$ | In-degree | Dependency-driven | Risk arises from widespread reuse | Highly reused functions can propagate failures |
-| $\gamma$ | Betweenness | Structural-driven | Risk arises from structural centrality | Bridge functions can disrupt large parts of the model |
-| $p<1$ | - | Compensatory | Attributes offset one another | Weaknesses can compensate |
-| $p=1$ | - | Additive | Risk is a weighted sum | Effects add linearly |
-| $p>1$ | - | Reinforcing | Attributes reinforce each other | Vulnerabilities amplify |
-| $p\gg 1$ | - | Bottleneck | Risk set by the largest attribute | Worst case dominates |
-
-Table: Interpretations of the parameters forming the risk score. For the weights, $(\alpha, \beta, \gamma) \in [0, 1]$, and $\alpha + \beta + \gamma = 1$.
+constraint that $\alpha+\beta+\gamma =1$. High $r$ values indicate functions that are complex and/or highly interconnected and hence potential points of structural vulnerability.
 
 ## Path-level risk scores
 
@@ -152,7 +196,7 @@ P_k = 1 - \prod_{i=1}^{n_k} (1 - r_{k(v_i)})\,,
 
 where $r_{k(v_i)}$ is the risk of the $i$-th function in path $k$ and $n_k$ is the number of functions in that path. $P_k$ is at least as large as the maximum individual function risk and monotonically increases as more functions on the path become risky, approaching 1 when several functions have high risk scores. High $P_k$ scores thus identify not only vulnerable paths, but also paths whose potential failure can have a larger cascading effect into other parts of the system through their shared high-centrality functions.
 
-In this example, we set $\alpha=0.6$, $\beta=0.3$ and $\gamma = 0.1$, thus prioritizing defect-proneness and the likelihood of unexpected behaviours and relegating propagation potential as secondary. By default, $p=1$ in the ``all_paths_fun`` (additive risk).
+In this example, we set $p=1$ (additive risk), $\alpha=0.6$, $\beta=0.3$ and $\gamma = 0.1$, thus prioritizing defect-proneness and the likelihood of unexpected behaviours and relegating propagation potential as secondary.
 
 ```{r all_paths}
 
@@ -181,14 +225,14 @@ The output of `all_paths_fun` is a list with two slots, `nodes` and `paths`.
 `softwareRisk` provides functions to inspect the results of the analysis. The function `path_fix_heatmap` allows the analyst to chose the top $n$ nodes and $n$ paths in terms of their risk score and 
 observe how much the risk score of the riskiest paths would decrease if the selected high-risk nodes were made perfectly reliable. This analysis identifies nodes that act as chokepoints for risk propagation, highlights paths dominated by single high-risk functions and reveals which refactoring actions would yield the greatest reductions in path-level risk.
 
-```{r plot_heatmap, fig.height=2.5, fig.width=3.5}
+```{r plot_heatmap, fig.height=2, fig.width=3}
 
 path_fix_heatmap(all_paths_out = output, n_nodes = 20, k_paths = 20)
 ```
 
 `softwareRisk` also allows to plot the call graph with the top risky paths highlighted. This is done with the function `plot_top_paths_fun`. The top ten most risky paths are highlighted in colour. The thickness of the edge shows how frequently an edge participates in the top 10 most risky paths. The color of the edge (from orange to red) indicates the mean risk of paths including that edge.
 
-```{r plot_paths, fig.height=2.5, fig.width=3.5}
+```{r plot_paths, fig.height=2, fig.width=3.5}
 
 plot_output <- plot_top_paths_fun(graph = synthetic_graph,
                                   all_paths_out = output,
@@ -202,7 +246,7 @@ The color of the nodes maps onto the cyclomatic complexity categories defined by
 
 The `alpha_non_top` argument controls the transparency of the paths that are not identified as top. For small or sparse models, it can be set to `alpha_non_top = 1` to better visualize the full call graph:
 
-```{r plot_paths2, fig.height=2.5, fig.width=3.5}
+```{r plot_paths2, fig.height=2, fig.width=3.5}
 
 plot_output <- plot_top_paths_fun(graph = synthetic_graph,
                                   all_paths_out = output,
@@ -212,9 +256,57 @@ plot_output <- plot_top_paths_fun(graph = synthetic_graph,
                                   alpha_non_top = 1)
 ```
 
+### Path-aware node criticality
+
+The node risk score captures how error-prone a function is in isolation, but not how
+many risky execution chains depend on it. The function `node_exposure_fun` summarizes,
+for each node, its participation in the enumerated entry-to-sink paths: the number of
+paths containing the node, the *risk load* (the sum of $P_k$ over those paths) and the
+corresponding shares. Comparing the rank of a node by risk load with its rank by risk
+score separates *chokepoints* (functions that many risky paths route through) from
+*hotspots* (functions that are complex in themselves):
+
+```{r node_exposure}
+
+# Compute node exposure ----------------------------------------------------------
+
+exposure <- node_exposure_fun(output)
+
+exposure
+```
+
+A node ranking much higher on `rank_risk_load` than on `rank_risk_score` is a
+chokepoint rather than a hotspot: refactoring it pays off because of *where* it sits,
+not because of *what* it contains.
+
+### Prioritizing fixes under a budget
+
+The heatmap above shows the effect of fixing single nodes on single paths. The function
+`fix_portfolio_fun` answers the budgeted question directly: given resources to refactor
+$k$ functions, which $k$? At each step it evaluates every candidate node, fixes the one
+whose repair (risk set to 0) most reduces the objective, and repeats. Two objectives
+are available: the total path risk $\sum_k P_k$ (default) and the risk of the riskiest
+path $\max_k P_k$. For the total-risk objective the improvement is monotone submodular,
+so the greedy selection is guaranteed to achieve at least $1 - 1/e \approx 63\%$ of the
+reduction of the optimal set of the same size [@nemhauser1978].
+
+```{r fix_portfolio, fig.height=2, fig.width=3.5}
+
+# Greedy portfolio of five fixes ---------------------------------------------------
+
+portfolio <- fix_portfolio_fun(output, budget = 5, objective = "total")
+
+portfolio$portfolio
+
+portfolio$plot
+```
+
+The curve displays the diminishing returns typical of submodular objectives and helps
+locate the point where additional refactoring stops paying off.
+
 ### Uncertainty and sensitivity analysis
 
-`softwareRisk` also enables the analyst to perform uncertainty and sensitivity analyses of risk and path score calculations by leveraging the sensobol package [@puy2022a]. By systematically varying the weights $(\alpha, \beta, \gamma)$ and the aggregation parameter $p$, the package allows users to evaluate how sensitive node- and path-level risk scores are to different risk conceptualizations. This approach makes it possible to assess the robustness of the identification of high-risk paths under alternative definitions of risk.
+`softwareRisk` also enables the analyst to perform uncertainty and sensitivity analyses of risk and path score calculations by leveraging the sensobol package [@puy2022a]. By systematically varying the weights $(\alpha, \beta, \gamma)$ and the power parameter $p$, the package allows users to evaluate how sensitive node- and path-level risk scores are to different risk conceptualizations. This approach makes it possible to assess the robustness of the identification of high-risk paths under alternative definitions of risk.
 
 Uncertainty and sensitivity analyses are implemented through the function `uncertainty_fun`. The user needs to define the order of the effects explored (`first`, `second` or `third`).
 
@@ -244,10 +336,45 @@ The output is a list with two slots:
 
 The analyst can also plot the top $n$ risky paths and their uncertainty with the function `path_uncertainty_plot`. The error bars encompass the minimum, mean and maximum $P_k$ value for that path after the uncertainty analysis.
 
-```{r plot_uncert, fig.height=2.5, fig.width=3.5}
+```{r plot_uncert}
 
 path_uncertainty_plot(ua_sa_out = uncertainty_analysis, n_paths = 20)
 ```
+
+### Robustness of the risk ranking
+
+Every uncertainty draw corresponds to one plausible definition of risk (one sampled
+combination of $\alpha$, $\beta$, $\gamma$ and $p$). Ranking the paths within each draw
+therefore shows which paths are flagged as risky *regardless* of how risk is weighted
+and which ones enter the top-$k$ only under specific assumptions. The function
+`rank_robustness_fun` computes, for each path (or node, with `what = "nodes"`), the
+probability of belonging to the top-$k$ across draws, together with the median and the
+5th and 95th percentiles of its rank. As a global summary it reports the mean Spearman
+correlation between the risk values of each draw and the consensus (mean) values:
+values close to 1 indicate that the ranking barely responds to the risk definition.
+
+```{r rank_robustness}
+
+# Robustness of the top-10 path ranking --------------------------------------------
+
+robustness <- rank_robustness_fun(uncertainty_analysis, top_k = 10, what = "paths")
+
+robustness$summary
+
+robustness$consensus_correlation
+```
+
+The companion function `rank_robustness_plot` displays the top-$k$ membership
+probability of the paths most often flagged as risky:
+
+```{r rank_robustness_plot, fig.height=2.5, fig.width=3.5}
+
+rank_robustness_plot(robustness, top_n = 20)
+```
+
+Paths with a probability close to 1 are risky under essentially any weighting of
+complexity, coupling and structural position; intermediate probabilities identify paths
+whose criticality depends on the analyst's assumptions.
 
 ### Extracting and plotting Sobol' indices
 
@@ -260,33 +387,24 @@ si_node1 <- uncertainty_analysis$nodes$sensitivity_analysis[[1]]$results
 si_node1
 ```
 
-To compare parameter importance across all nodes, combine the per-node results into a single data frame:
-
-```{r sa_combine}
-
-sa_all <- do.call(rbind, Map(
-  function(sa, nm) data.frame(sa$results, name = nm, stringsAsFactors = FALSE),
-  uncertainty_analysis$nodes$sensitivity_analysis,
-  uncertainty_analysis$nodes$name
-))
-
-head(sa_all)
-```
-
-The resulting data frame can be used to visualize how much of the variance in node risk scores is explained by each parameter, and whether the dominant driver is consistent across nodes or varies. The plot below shows boxplots of $S_i$ and $T_i$ for each parameter across all nodes. A large gap between $S_i$ and $T_i$ for a parameter indicates important higher-order interactions with the other parameters.
+The function `sensitivity_plot_fun` wraps the extraction and visualization of these
+indices. With the default `nodes = NULL`, it shows the distribution of $S_i$ and $T_i$
+for each parameter across all nodes, answering the system-level question of which
+assumption dominates the risk scores. A large gap between $S_i$ and $T_i$ for a
+parameter indicates important higher-order interactions with the other parameters.
 
 ```{r sa_plot, fig.height=2.5, fig.width=4}
 
-library(ggplot2)
+sensitivity_plot_fun(uncertainty_analysis)
+```
 
-ggplot(sa_all, aes(x = parameters, y = original, fill = sensitivity)) +
-  geom_boxplot(alpha = 0.7) +
-  scale_fill_manual(
-    values = c(Si = "#F8766D", Ti = "#00BFC4"),
-    labels = c(expression(S[i]), expression(T[i]))
-  ) +
-  labs(x = "Parameter", y = "Sobol' index", fill = "Index") +
-  theme_bw()
+With `nodes` set to a character vector of node names, the indices of those nodes are
+displayed individually with their confidence intervals, one panel per node:
+
+```{r sa_plot_nodes, fig.height=2.5, fig.width=4.5}
+
+sensitivity_plot_fun(uncertainty_analysis,
+                     nodes = c("M29", "M35", "M23", "M31"))
 ```
 
 ## References
