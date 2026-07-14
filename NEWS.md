@@ -1,3 +1,48 @@
+# softwareRisk 0.3.0
+
+## New features
+
+- `call_graph_fun()` builds the call graph required by `all_paths_fun()`
+  automatically from an installed `R` package (`pkg` argument) or a directory
+  of `.R` scripts (`dir` argument). Calls are detected by static analysis
+  (`codetools::findGlobals()`; the code is never executed) and cyclomatic
+  complexity is computed internally by walking the abstract syntax tree of
+  each function, following McCabe (1976).
+- `read_call_graph()` imports and validates the edge-list and complexity
+  tables described in the vignette (data frames or `.csv` files), failing
+  early with informative messages on misspelled columns, functions missing
+  from the complexity table, duplicated names or non-numeric complexity
+  values. Recommended entry point for models written in other languages.
+- `node_exposure_fun()` computes path-aware node criticality: for each node,
+  the number of entry-to-sink paths containing it, its *risk load* (the sum
+  of path risk over those paths) and the corresponding shares and ranks,
+  separating chokepoints (structurally exposed functions) from hotspots
+  (complex functions).
+- `fix_portfolio_fun()` greedily selects the set of nodes whose fixing most
+  reduces total path risk (or the risk of the riskiest path) under a budget
+  of interventions, and returns the selection together with a
+  diminishing-returns plot. For the total-risk objective the greedy solution
+  carries the usual (1 - 1/e) submodular optimality guarantee.
+- `rank_robustness_fun()` quantifies how stable the identification of the
+  top-k riskiest paths (or nodes) is across the uncertainty draws of
+  `uncertainty_fun()`: per-item top-k membership probability, rank quantiles
+  and a consensus rank correlation. `rank_robustness_plot()` visualizes the
+  result.
+- `sensitivity_plot_fun()` visualizes the Sobol' indices stored in the
+  `sensitivity_analysis` column of `uncertainty_fun()` output, either
+  aggregated across all nodes (boxplots) or for selected nodes with their
+  confidence intervals.
+
+## Improvements
+
+- The vignette gained sections on automatic call-graph construction, input
+  validation with `read_call_graph()`, node exposure, budgeted fix
+  portfolios, ranking robustness and Sobol'-index plotting, with worked
+  examples and figures.
+- `codetools` added to `Imports` (ships with `R`).
+- Added test suites for all new functions.
+- Fixed several typos in the vignette.
+
 # softwareRisk 0.2.2
 
 ## Bug fixes

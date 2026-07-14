@@ -12,6 +12,25 @@ functions and for paths (sequences of function calls) based on cyclomatic comple
 and betweenness centrality. The package supports variance-based uncertainty and sensitivity analyses 
 to assess how risk scores change under alternative risk definitions.
 
+## Main features
+
+- **Automatic call-graph construction**: `call_graph_fun()` builds the graph
+  (calls plus cyclomatic complexity) directly from an installed `R` package or a
+  directory of `.R` scripts; `read_call_graph()` imports and validates edge-list
+  and complexity tables prepared with external tools for models in other languages.
+- **Node and path risk scores**: `all_paths_fun()` scores every function and every
+  entry-to-sink call path from cyclomatic complexity, in-degree and betweenness.
+- **Intervention analysis**: `node_exposure_fun()` separates chokepoints from
+  hotspots; `path_fix_heatmap()` and `fix_portfolio_fun()` show which fixes, and
+  which *sets* of fixes under a budget, most reduce path risk.
+- **Uncertainty and sensitivity analysis**: `uncertainty_fun()` propagates
+  alternative risk definitions through the scores (via `sensobol`);
+  `rank_robustness_fun()` reports how stable the top-k ranking is;
+  `sensitivity_plot_fun()` shows which assumption drives the results.
+- **Visualization**: `plot_top_paths_fun()`, `path_uncertainty_plot()`,
+  `rank_robustness_plot()` and companions render the results with a
+  publication-oriented theme.
+
 ## Installation
 
 To install the stable version on [CRAN](https://CRAN.R-project.org/package=softwareRisk), use
@@ -38,7 +57,7 @@ vignette is also available [here](https://github.com/arnaldpuy/softwareRisk/raw/
 To cite `softwareRisk` in publications:
 
 Puy A (2026). _softwareRisk: Computation of node and path-level risk scores in scientific models_. R
-package version 0.2.2, <https://github.com/arnaldpuy/softwareRisk>.
+package version 0.3.0, <https://github.com/arnaldpuy/softwareRisk>.
 
 A BibTeX entry for LaTeX users is
 
@@ -46,7 +65,7 @@ A BibTeX entry for LaTeX users is
   title = {softwareRisk: Computation of node and path-level risk scores in scientific models},
   author = {Arnald Puy},
   year = {2026},
-  note = {R package version 0.2.2},
+  note = {R package version 0.3.0},
   url = {https://github.com/arnaldpuy/softwareRisk}
 }
 

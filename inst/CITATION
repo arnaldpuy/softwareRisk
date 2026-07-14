@@ -5,5 +5,5 @@ bibentry(
   title = "softwareRisk: Computation of Node and Path-Level Risk Scores in Scientific Models",
   author = person("Arnald", "Puy"),
   year = "2026",
-  note = "R package version 0.2.2"
+  note = "R package version 0.3.0"
 )
